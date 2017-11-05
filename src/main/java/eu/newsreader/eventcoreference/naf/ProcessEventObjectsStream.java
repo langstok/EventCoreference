@@ -16,6 +16,7 @@ import com.hp.hpl.jena.sparql.core.DatasetGraph;
 import com.hp.hpl.jena.sparql.core.Quad;
 import com.hp.hpl.jena.tdb.TDBFactory;
 import com.hp.hpl.jena.vocabulary.RDF;
+import eu.newsreader.eventcoreference.configurationproperties.ProcessEventObjectStreamProperties;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.jena.atlas.web.auth.HttpAuthenticator;
 import org.apache.jena.atlas.web.auth.SimpleAuthenticator;
@@ -69,29 +70,26 @@ public class ProcessEventObjectsStream {
     static public String filename = "";
     static public String projectName = "cars";
 
-    static public String CONTEXTUALMATCHTYPE = "ILILEMMA";
-    static public boolean CONTEXTUALLCS = true;
+    static public String contextualMatchType = "ILILEMMA";
+    static public boolean contextualLcs = true;
 
-    static public String SOURCEMATCHTYPE = "ILILEMMA";
-    static public boolean SOURCELCS = false;
+    static public String soureceMatchType = "ILILEMMA";
+    static public boolean sourceLcs = false;
 
-    static public String GRAMMATICALMATCHTYPE = "LEMMA";
-    static public boolean GRAMMATICALLCS = false;
+    static public String grammaticalMatchType = "LEMMA";
+    static public boolean grammaticalLcs = false;
 
-    static public String FUTUREMATCHTYPE = "LEMMA";
-    static public boolean FUTURELCS = false;
+    static public String futureMatchType = "LEMMA";
+    static public boolean futureLcs = false;
 
     static public ArrayList<String> contextualNeededRoles = new ArrayList<String>();
     static public ArrayList<String> sourceNeededRoles = new ArrayList<String>();
     static public ArrayList<String> grammaticalNeededRoles = new ArrayList<String>();
 
-    static boolean DEBUG = false;
-
     static public int recentDays = 0;
 
     static public String done = "";
 
-//    final static String serviceEndpoint = "https://knowledgestore2.fbk.eu/nwr/cars2/sparql";
     public static String serviceEndpoint = "https://knowledgestore2.fbk.eu/nwr/aitor/sparql";
     public static String user = "nwr_partner";
     public static String pass = "ks=2014!";
@@ -113,6 +111,56 @@ public class ProcessEventObjectsStream {
 
     public static int conceptMatchThreshold = 50;
     public static int phraseMatchThreshold = 50;
+
+
+    public ProcessEventObjectsStream(ProcessEventObjectStreamProperties processEventObjectStreamProperties) {
+        init(processEventObjectStreamProperties);
+    }
+
+    public void init(ProcessEventObjectStreamProperties processEventObjectStreamProperties) {
+
+        this.filename = "";
+        this.projectName = "";
+        this.conceptMatchThreshold = processEventObjectStreamProperties.getConceptMatch();
+        this.phraseMatchThreshold = processEventObjectStreamProperties.getPhraseMatch();
+        this.contextualMatchType = processEventObjectStreamProperties.getContextualMatchType();
+        this.contextualLcs = processEventObjectStreamProperties.isContextualLcs();
+
+        String[] fields = processEventObjectStreamProperties.getContextualRoles().split(",");
+        for (int j = 0; j < fields.length; j++) {
+            String field = fields[j].trim();
+            this.contextualNeededRoles.add(field);
+        }
+
+        soureceMatchType = processEventObjectStreamProperties.getSourceMatchType();
+        sourceLcs = processEventObjectStreamProperties.isSourceLcs();
+
+        String[] sourceNeededRolesFields = processEventObjectStreamProperties.getSourceRoles().split(",");
+        for (int j = 0; j < sourceNeededRolesFields.length; j++) {
+            String field = sourceNeededRolesFields[j].trim();
+            sourceNeededRoles.add(field);
+        }
+
+        grammaticalMatchType = processEventObjectStreamProperties.getGrammaticalMatchType();
+        grammaticalLcs = processEventObjectStreamProperties.isGrammaticalLcs();
+        String[] grammaticalRolesfields = processEventObjectStreamProperties.getGrammaticalRoles().split(",");
+        for (int j = 0; j < grammaticalRolesfields.length; j++) {
+            String field = grammaticalRolesfields[j].trim();
+            grammaticalNeededRoles.add(field);
+        }
+
+        futureMatchType = processEventObjectStreamProperties.getFutureMatchType();
+        futureLcs = processEventObjectStreamProperties.isFutureLcs();
+        recentDays = processEventObjectStreamProperties.getRecentSpan();
+
+        serviceEndpoint = processEventObjectStreamProperties.getKnowledgeStore();
+        user = processEventObjectStreamProperties.getUserName();
+        pass = processEventObjectStreamProperties.getPassword();
+
+    }
+
+
+
 
     static public String matchSingleTmx(Node tmx, DatasetGraph g, Model m){
         String sq="";
@@ -185,9 +233,9 @@ public class ProcessEventObjectsStream {
                     e.printStackTrace();
                 }
             }else if (arg.equals("--contextual-match-type") && args.length > (i + 1)) {
-                CONTEXTUALMATCHTYPE = args[i + 1];
+                contextualMatchType = args[i + 1];
             } else if (arg.equals("--contextual-lcs")) {
-                CONTEXTUALLCS = true;
+                contextualLcs = true;
             } else if (arg.equals("--contextual-roles") && args.length > (i + 1)) {
                 String[] fields = args[i + 1].split(",");
                 for (int j = 0; j < fields.length; j++) {
@@ -195,9 +243,9 @@ public class ProcessEventObjectsStream {
                     contextualNeededRoles.add(field);
                 }
             } else if (arg.equals("--source-match-type") && args.length > (i + 1)) {
-                SOURCEMATCHTYPE = args[i + 1];
+                soureceMatchType = args[i + 1];
             } else if (arg.equals("--source-lcs")) {
-                SOURCELCS = true;
+                sourceLcs = true;
             } else if (arg.equals("--source-roles") && args.length > (i + 1)) {
                 String[] fields = args[i + 1].split(",");
                 for (int j = 0; j < fields.length; j++) {
@@ -205,9 +253,9 @@ public class ProcessEventObjectsStream {
                     sourceNeededRoles.add(field);
                 }
             } else if (arg.equals("--grammatical-match-type") && args.length > (i + 1)) {
-                GRAMMATICALMATCHTYPE = args[i + 1];
+                grammaticalMatchType = args[i + 1];
             } else if (arg.equals("--grammatical-lcs")) {
-                GRAMMATICALLCS = true;
+                grammaticalLcs = true;
             } else if (arg.equals("--grammatical-roles") && args.length > (i + 1)) {
                 String[] fields = args[i + 1].split(",");
                 for (int j = 0; j < fields.length; j++) {
@@ -215,9 +263,9 @@ public class ProcessEventObjectsStream {
                     grammaticalNeededRoles.add(field);
                 }
             } else if (arg.equals("--future-match-type") && args.length > (i + 1)) {
-                FUTUREMATCHTYPE = args[i + 1];
+                futureMatchType = args[i + 1];
             } else if (arg.equals("--future-lcs")) {
-                FUTURELCS = true;
+                futureLcs = true;
             } else if (arg.equals("--recent-span")) {
                 recentDays = Integer.parseInt(args[i + 1]);
             } else if (arg.equals("--ks")) {
@@ -313,15 +361,15 @@ public class ProcessEventObjectsStream {
 
                         if (rdfType.equals("http://www.newsreader-project.eu/ontologies/grammaticalEvent")) {
                             nwrtype = rdfType;
-                            MATCHTYPE = GRAMMATICALMATCHTYPE;
+                            MATCHTYPE = grammaticalMatchType;
                             neededRoles = grammaticalNeededRoles;
                         } else if (rdfType.equals("http://www.newsreader-project.eu/ontologies/sourceEvent")) {
                             nwrtype = rdfType;
-                            MATCHTYPE = SOURCEMATCHTYPE;
+                            MATCHTYPE = soureceMatchType;
                             neededRoles = sourceNeededRoles;
                         } else if (rdfType.equals("http://www.newsreader-project.eu/ontologies/contextualEvent")) {
                             nwrtype = rdfType;
-                            MATCHTYPE = CONTEXTUALMATCHTYPE;
+                            MATCHTYPE = contextualMatchType;
                             neededRoles = contextualNeededRoles;
                         } else if (rdfType.contains("http://www.newsreader-project.eu/ontologies/framenet/")) {
                             myFrames.add(rdfType);
