@@ -218,21 +218,19 @@ public class ProcessEventObjectsStream {
                 filename = args[i + 1];
             } else if (arg.equals("--project") && args.length > (i + 1)) {
                 projectName = args[i + 1];
-            }
-            else if (arg.equals("--concept-match") && args.length>(i+1)) {
+            } else if (arg.equals("--concept-match") && args.length > (i + 1)) {
                 try {
                     conceptMatchThreshold = Integer.parseInt(args[i + 1]);
                 } catch (NumberFormatException e) {
                     e.printStackTrace();
                 }
-            }
-            else if (arg.equals("--phrase-match") && args.length>(i+1)) {
+            } else if (arg.equals("--phrase-match") && args.length > (i + 1)) {
                 try {
                     phraseMatchThreshold = Integer.parseInt(args[i + 1]);
                 } catch (NumberFormatException e) {
                     e.printStackTrace();
                 }
-            }else if (arg.equals("--contextual-match-type") && args.length > (i + 1)) {
+            } else if (arg.equals("--contextual-match-type") && args.length > (i + 1)) {
                 contextualMatchType = args[i + 1];
             } else if (arg.equals("--contextual-lcs")) {
                 contextualLcs = true;
@@ -278,17 +276,20 @@ public class ProcessEventObjectsStream {
 
         }
 
-
-
         Dataset ds = TDBFactory.createDataset();
         Dataset dsnew = TDBFactory.createDataset();
-
         if (filename.isEmpty()){ // If empty filename, read from stream!
             readTrigFromStream(ds, dsnew);
         } else {
             RDFDataMgr.read(ds, filename);
             RDFDataMgr.read(dsnew, filename);
         }
+        process(ds, dsnew);
+    }
+
+
+    public static void process(Dataset ds, Dataset dsnew){
+
         Model m = ds.getNamedModel("http://www.newsreader-project.eu/instances");
 
         Model m2 = ds.getDefaultModel();
@@ -678,6 +679,18 @@ public class ProcessEventObjectsStream {
 
         }
 
+    }
+
+    public static void readTrigFromStream(InputStream is, Dataset ds, Dataset dsnew) throws IllegalArgumentException {
+        if (is==null)
+            throw new IllegalArgumentException("No stream input!");
+
+        ByteArrayOutputStream b = cloneInputStream(is);
+        InputStream is1 = new ByteArrayInputStream(b.toByteArray());
+        InputStream is2 = new ByteArrayInputStream(b.toByteArray());
+
+        RDFDataMgr.read(ds, is1, RDFLanguages.TRIG);
+        RDFDataMgr.read(dsnew, is2, RDFLanguages.TRIG);
     }
 
     private static void moveRelations(DatasetGraph g, Node eventId, Node tmxEventId, Node tmx) {
