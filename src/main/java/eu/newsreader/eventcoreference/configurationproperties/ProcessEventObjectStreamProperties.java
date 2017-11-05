@@ -1,6 +1,6 @@
 package eu.newsreader.eventcoreference.configurationproperties;
 
-public class ProcessEventObjectStreamProperties {
+public abstract class ProcessEventObjectStreamProperties {
 
     /**
      * threshold for conceptual matches of events, default is 50

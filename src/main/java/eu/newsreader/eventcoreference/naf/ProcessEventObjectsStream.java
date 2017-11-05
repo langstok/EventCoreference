@@ -31,6 +31,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.logging.Logger;
+
 /**
  * Created with IntelliJ IDEA.
  * User: Filip
@@ -39,6 +41,8 @@ import java.util.Map;
  * To change this template use File | Settings | File Templates.
  */
 public class ProcessEventObjectsStream {
+
+    private static final Logger logger = Logger.getLogger(ProcessEventObjectsStream.class.getName());
 
 
 
@@ -117,7 +121,7 @@ public class ProcessEventObjectsStream {
         init(processEventObjectStreamProperties);
     }
 
-    public void init(ProcessEventObjectStreamProperties processEventObjectStreamProperties) {
+    private void init(ProcessEventObjectStreamProperties processEventObjectStreamProperties) {
 
         this.filename = "";
         this.projectName = "";
@@ -284,11 +288,12 @@ public class ProcessEventObjectsStream {
             RDFDataMgr.read(ds, filename);
             RDFDataMgr.read(dsnew, filename);
         }
-        process(ds, dsnew);
+        DatasetGraph gnew = process(ds, dsnew);
+        RDFDataMgr.write(System.out, gnew, RDFLanguages.TRIG); // or NQUADS
     }
 
 
-    public static void process(Dataset ds, Dataset dsnew){
+    public static DatasetGraph process(Dataset ds, Dataset dsnew){
 
         Model m = ds.getNamedModel("http://www.newsreader-project.eu/instances");
 
@@ -625,10 +630,9 @@ public class ProcessEventObjectsStream {
             // QueryExecution objects should be closed to free any system
             // resources
             qexec.close();
-            RDFDataMgr.write(System.out, gnew, RDFLanguages.TRIG); // or NQUADS
         }
 
-
+        return gnew;
     }
 
     private static ByteArrayOutputStream cloneInputStream(InputStream input){
