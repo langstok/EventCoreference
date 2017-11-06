@@ -17,7 +17,6 @@ import com.hp.hpl.jena.sparql.core.Quad;
 import com.hp.hpl.jena.tdb.TDBFactory;
 import com.hp.hpl.jena.vocabulary.RDF;
 import eu.newsreader.eventcoreference.configurationproperties.ProcessEventObjectStreamProperties;
-import org.apache.commons.codec.binary.Base64;
 import org.apache.jena.atlas.web.auth.HttpAuthenticator;
 import org.apache.jena.atlas.web.auth.SimpleAuthenticator;
 import org.apache.jena.riot.RDFDataMgr;
@@ -71,34 +70,35 @@ public class ProcessEventObjectsStream {
             "--future-lcs                        <Use lowest-common-subsumers. Default value is OFF.>\n" +
             "--recent-span              <int>    <Amount of past days which are still considered recent and are treated differently>\n";
 
-    static public String filename = "";
-    static public String projectName = "cars";
+    public static String filename = "";
+    public String projectName = "cars";
 
-    static public String contextualMatchType = "ILILEMMA";
-    static public boolean contextualLcs = true;
+    public String contextualMatchType = "ILILEMMA";
+    public boolean contextualLcs = true;
 
-    static public String soureceMatchType = "ILILEMMA";
-    static public boolean sourceLcs = false;
+    public String soureceMatchType = "ILILEMMA";
+    public boolean sourceLcs = false;
 
-    static public String grammaticalMatchType = "LEMMA";
-    static public boolean grammaticalLcs = false;
+    public String grammaticalMatchType = "LEMMA";
+    public boolean grammaticalLcs = false;
 
-    static public String futureMatchType = "LEMMA";
-    static public boolean futureLcs = false;
+    public String futureMatchType = "LEMMA";
+    public boolean futureLcs = false;
 
-    static public ArrayList<String> contextualNeededRoles = new ArrayList<String>();
-    static public ArrayList<String> sourceNeededRoles = new ArrayList<String>();
-    static public ArrayList<String> grammaticalNeededRoles = new ArrayList<String>();
+    public ArrayList<String> contextualNeededRoles = new ArrayList<String>();
+    public ArrayList<String> sourceNeededRoles = new ArrayList<String>();
+    public ArrayList<String> grammaticalNeededRoles = new ArrayList<String>();
 
-    static public int recentDays = 0;
+    public int recentDays = 0;
 
-    static public String done = "";
+    public String done = "";
 
-    public static String serviceEndpoint = "https://knowledgestore2.fbk.eu/nwr/aitor/sparql";
-    public static String user = "nwr_partner";
-    public static String pass = "ks=2014!";
-    public static String authStr = user + ":" + pass;
-    public static byte[] authEncoded = Base64.encodeBase64(authStr.getBytes());
+    public String serviceEndpoint = "https://knowledgestore2.fbk.eu/nwr/aitor/sparql";
+    public String user = "nwr_partner";
+    public String pass = "ks=2014!";
+
+    public int conceptMatchThreshold = 50;
+    public int phraseMatchThreshold = 50;
 
     public static final String NL = System.getProperty("line.separator");
 
@@ -113,15 +113,24 @@ public class ProcessEventObjectsStream {
     public static final Node begintimeNode = NodeFactory.createURI("http://semanticweb.cs.vu.nl/2009/11/sem/hasEarliestBeginTimeStamp");
     public static final Node endtimeNode = NodeFactory.createURI("http://semanticweb.cs.vu.nl/2009/11/sem/hasEarliestEndTimeStamp");
 
-    public static int conceptMatchThreshold = 50;
-    public static int phraseMatchThreshold = 50;
+
 
 
     public ProcessEventObjectsStream(ProcessEventObjectStreamProperties processEventObjectStreamProperties) {
-        init(processEventObjectStreamProperties);
+        parseProperties(processEventObjectStreamProperties);
     }
 
-    private void init(ProcessEventObjectStreamProperties processEventObjectStreamProperties) {
+    public ProcessEventObjectsStream(String[] args){
+        if (args.length == 0) {
+            System.out.println(USAGE);
+            System.out.println("NOW RUNNING WITH DEFAULT SETTINGS");
+        }
+        else
+            parseArgs(args);
+    }
+
+
+    private void parseProperties(ProcessEventObjectStreamProperties processEventObjectStreamProperties) {
 
         this.filename = "";
         this.projectName = "";
@@ -163,59 +172,24 @@ public class ProcessEventObjectsStream {
 
     }
 
+    public static void main(String[] args) {
+        ProcessEventObjectsStream processEventObjectsStream = new ProcessEventObjectsStream(args);
 
-
-
-    static public String matchSingleTmx(Node tmx, DatasetGraph g, Model m){
-        String sq="";
-        if (g.contains(null, tmx, typeNode, instantNode)) { // One Instant
-            sq += "?ev <http://semanticweb.cs.vu.nl/2009/11/sem/hasTime> ?t . ?t a <http://www.w3.org/TR/owl-time#Instant> . ";
-            for (Iterator<Quad> iter = g.find(null, tmx, specificTimeNode, null); iter.hasNext(); ) {
-                Quad q = iter.next();
-                sq += "?t <http://www.w3.org/TR/owl-time#inDateTime> <" + q.asTriple().getObject() + "> . ";
-            }
-        } else { // One Interval
-
-            String intervalQuery = "SELECT ?begin ?end WHERE { <" + tmx + ">  <http://www.w3.org/TR/owl-time#hasBeginning> ?begin ; <http://www.w3.org/TR/owl-time#hasEnd> ?end . }";
-
-            Query inQuery = QueryFactory.create(intervalQuery);
-
-            // Create a single execution of this query, apply to a model
-            // which is wrapped up as a Dataset
-            QueryExecution inQexec = QueryExecutionFactory.create(inQuery, m);
-
-            try {
-                // Assumption: it’s a SELECT query.
-                ResultSet inrs = inQexec.execSelect();
-                // The order of results is undefined.
-                for (; inrs.hasNext(); ) {
-                    QuerySolution evrb = inrs.nextSolution();
-                    // Get title - variable names do not include the ’?’
-                    String begin = evrb.get("begin").toString();
-                    String end = evrb.get("end").toString();
-
-                    String unionQuery = "{ ?ev <http://semanticweb.cs.vu.nl/2009/11/sem/hasTime> ?t . ?t a <http://www.w3.org/TR/owl-time#Interval> . ?t <http://www.w3.org/TR/owl-time#hasBeginning> <" + begin + "> ; <http://www.w3.org/TR/owl-time#hasEnd> <" + end + "> . } ";
-                    unionQuery += "UNION ";
-                    unionQuery += "{ ?ev <http://semanticweb.cs.vu.nl/2009/11/sem/hasEarliestBeginTimeStamp> ?t1 . ?t1 a <http://www.w3.org/TR/owl-time#Instant> . ?t1 <http://www.w3.org/TR/owl-time#inDateTime> <" + begin + "> . ?ev <http://semanticweb.cs.vu.nl/2009/11/sem/hasEarliestEndTimeStamp> ?t2 . ?t2 a <http://www.w3.org/TR/owl-time#Instant> . ?t2 <http://www.w3.org/TR/owl-time#inDateTime> <" + end + "> . } ";
-                    sq += unionQuery;
-                }
-            } finally {
-                inQexec.close();
-            }
+        Dataset ds = TDBFactory.createDataset();
+        Dataset dsnew = TDBFactory.createDataset();
+        if(filename.isEmpty()){ // If empty filename, read from stream!
+            readTrigFromStream(ds, dsnew);
         }
-        return sq;
+        else{
+            RDFDataMgr.read(ds, filename);
+            RDFDataMgr.read(dsnew, filename);
+        }
+        DatasetGraph gnew = processEventObjectsStream.process(ds, dsnew);
+        RDFDataMgr.write(System.out, gnew, RDFLanguages.TRIG); // or NQUADS
     }
 
-    static public void main(String[] args) {
 
-        // 1. CLUSTER
-
-        if (args.length == 0) {
-            System.out.println(USAGE);
-            System.out.println("NOW RUNNING WITH DEFAULT SETTINGS");
-            //  return;
-        }
-
+    public void parseArgs(String args[]) {
         for (int i = 0; i < args.length; i++) {
             String arg = args[i];
             if (arg.equals("--filename") && args.length > (i + 1)) {
@@ -277,23 +251,51 @@ public class ProcessEventObjectsStream {
             } else if (arg.equals("--passw")) {
                 pass = args[i + 1];
             }
-
         }
+    }
 
-        Dataset ds = TDBFactory.createDataset();
-        Dataset dsnew = TDBFactory.createDataset();
-        if (filename.isEmpty()){ // If empty filename, read from stream!
-            readTrigFromStream(ds, dsnew);
-        } else {
-            RDFDataMgr.read(ds, filename);
-            RDFDataMgr.read(dsnew, filename);
+    public static String matchSingleTmx(Node tmx, DatasetGraph g, Model m){
+        String sq="";
+        if (g.contains(null, tmx, typeNode, instantNode)) { // One Instant
+            sq += "?ev <http://semanticweb.cs.vu.nl/2009/11/sem/hasTime> ?t . ?t a <http://www.w3.org/TR/owl-time#Instant> . ";
+            for (Iterator<Quad> iter = g.find(null, tmx, specificTimeNode, null); iter.hasNext(); ) {
+                Quad q = iter.next();
+                sq += "?t <http://www.w3.org/TR/owl-time#inDateTime> <" + q.asTriple().getObject() + "> . ";
+            }
+        } else { // One Interval
+
+            String intervalQuery = "SELECT ?begin ?end WHERE { <" + tmx + ">  <http://www.w3.org/TR/owl-time#hasBeginning> ?begin ; <http://www.w3.org/TR/owl-time#hasEnd> ?end . }";
+
+            Query inQuery = QueryFactory.create(intervalQuery);
+
+            // Create a single execution of this query, apply to a model
+            // which is wrapped up as a Dataset
+            QueryExecution inQexec = QueryExecutionFactory.create(inQuery, m);
+
+            try {
+                // Assumption: it’s a SELECT query.
+                ResultSet inrs = inQexec.execSelect();
+                // The order of results is undefined.
+                for (; inrs.hasNext(); ) {
+                    QuerySolution evrb = inrs.nextSolution();
+                    // Get title - variable names do not include the ’?’
+                    String begin = evrb.get("begin").toString();
+                    String end = evrb.get("end").toString();
+
+                    String unionQuery = "{ ?ev <http://semanticweb.cs.vu.nl/2009/11/sem/hasTime> ?t . ?t a <http://www.w3.org/TR/owl-time#Interval> . ?t <http://www.w3.org/TR/owl-time#hasBeginning> <" + begin + "> ; <http://www.w3.org/TR/owl-time#hasEnd> <" + end + "> . } ";
+                    unionQuery += "UNION ";
+                    unionQuery += "{ ?ev <http://semanticweb.cs.vu.nl/2009/11/sem/hasEarliestBeginTimeStamp> ?t1 . ?t1 a <http://www.w3.org/TR/owl-time#Instant> . ?t1 <http://www.w3.org/TR/owl-time#inDateTime> <" + begin + "> . ?ev <http://semanticweb.cs.vu.nl/2009/11/sem/hasEarliestEndTimeStamp> ?t2 . ?t2 a <http://www.w3.org/TR/owl-time#Instant> . ?t2 <http://www.w3.org/TR/owl-time#inDateTime> <" + end + "> . } ";
+                    sq += unionQuery;
+                }
+            } finally {
+                inQexec.close();
+            }
         }
-        DatasetGraph gnew = process(ds, dsnew);
-        RDFDataMgr.write(System.out, gnew, RDFLanguages.TRIG); // or NQUADS
+        return sq;
     }
 
 
-    public static DatasetGraph process(Dataset ds, Dataset dsnew){
+    public DatasetGraph process(Dataset ds, Dataset dsnew){
 
         Model m = ds.getNamedModel("http://www.newsreader-project.eu/instances");
 
@@ -809,7 +811,7 @@ public class ProcessEventObjectsStream {
 
     }
 
-    private static void inferIdentityRelations(String sparqlQuery, boolean matchILI, boolean matchLemma, boolean matchMultiple, int iliSize, Node eventId, DatasetGraph g) {
+    private void inferIdentityRelations(String sparqlQuery, boolean matchILI, boolean matchLemma, boolean matchMultiple, int iliSize, Node eventId, DatasetGraph g) {
         if (matchILI || matchLemma) {
             sparqlQuery += "GROUP BY ?ev";
         }
@@ -846,7 +848,7 @@ public class ProcessEventObjectsStream {
 
     }
 
-    private static ArrayList<Node> inferMultitimesIdentityRelations (String sparqlQuery, boolean matchILI, boolean matchLemma, boolean matchMultiple, int iliSize, String eventId) {
+    private ArrayList<Node> inferMultitimesIdentityRelations (String sparqlQuery, boolean matchILI, boolean matchLemma, boolean matchMultiple, int iliSize, String eventId) {
         if (matchILI || matchLemma) {
             sparqlQuery += "GROUP BY ?ev";
         }
