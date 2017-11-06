@@ -12,6 +12,7 @@ import java.util.Locale;
 
 /**
  * Created by piek on 04/05/2017.
+ * GENERATES OVERVIEW TABLE FROM NWEWSREADER PIPELINE OUTPUT
  */
 public class PipelineOverview {
 
@@ -29,15 +30,16 @@ public class PipelineOverview {
         ArrayList<File> nafFiles = Util.makeFlatFileList(new File(path), ".out.naf");
         ArrayList<File> trigFiles = Util.makeFlatFileList(new File(path), ".trig");
         ArrayList<File> ttlFiles = Util.makeFlatFileList(new File(path), ".ttl");
+        ArrayList<File> svgFiles = Util.makeFlatFileList(new File(path), ".svg");
+       // File allTrig = new File(path+"/"+"all.trig");
         try {
             OutputStream fos = new FileOutputStream(path+"/"+"index.html");
-            String str = makeHtml(textFiles, innafFiles, nafFiles, trigFiles, ttlFiles);
+            String str = makeHtml(textFiles, innafFiles, nafFiles, trigFiles, ttlFiles, svgFiles);
             fos.write(str.getBytes());
             fos.close();
         } catch (IOException e) {
             e.printStackTrace();
         }
-
     }
 
     static String css = "<style>\n.divTable{\n" +
@@ -70,7 +72,7 @@ public class PipelineOverview {
             "\tdisplay: table-row-group;\n" +
             "}\n</style>\n";
 
-    static String makeHtml (ArrayList<File> textFiles, ArrayList<File> innafFiles, ArrayList<File> nafFiles, ArrayList<File> trigFiles, ArrayList<File> ttlFiles) {
+    static String makeHtml (ArrayList<File> textFiles, ArrayList<File> innafFiles, ArrayList<File> nafFiles, ArrayList<File> trigFiles, ArrayList<File> ttlFiles, ArrayList<File> svgFiles) {
         String html =
                 "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Strict//EN\"\n" +
                         "        \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd\">\n" +
@@ -82,6 +84,7 @@ public class PipelineOverview {
                  html += "</head>\n";
                 html+="<body>\n" +
                         "<h1>Results of the NewsReader pipeline</h1>\n"+
+                        "<a href=\"README\">How to run this demo? See README</a>\n" +
                         "<div class=\"divTable\" style=\"width: 100%;border: 1px solid #000;\">\n" +
                 "<div class=\"divTableBody\">\n";
                 html += "<div class=\"divTableRow\">\n" +
@@ -100,6 +103,9 @@ public class PipelineOverview {
                         "<div class=\"divTableCell\">TTL</div>\n" +
                         "<div class=\"divTableCell\">Kb size</div>\n" +
                         "<div class=\"divTableCell\">Date</div>\n" +
+                        "<div class=\"divTableCell\">Graph</div>\n" +
+                        "<div class=\"divTableCell\">Kb size</div>\n" +
+                        "<div class=\"divTableCell\">Date</div>\n" +
                         "</div>\n";
         Collections.sort(textFiles);
         for (int i = 0; i < textFiles.size(); i++) {
@@ -108,6 +114,7 @@ public class PipelineOverview {
             File innafFile = null;
             File nafFile = null;
             File ttlFile = null;
+            File svgFile = null;
             for (int j = 0; j < innafFiles.size(); j++) {
                 File file = innafFiles.get(j);
                 if (file.getName().startsWith(textFile.getName())) {
@@ -136,8 +143,17 @@ public class PipelineOverview {
                     break;
                 }
             }
-            html += makeRow(textFile, innafFile, nafFile, trigFile, ttlFile);
+            for (int j = 0; j < svgFiles.size(); j++) {
+                File file = svgFiles.get(j);
+                if (file.getName().startsWith(textFile.getName())) {
+                    svgFile = file;
+                    break;
+                }
+            }
+            html += makeRow(textFile, innafFile, nafFile, trigFile, ttlFile, svgFile);
         }
+
+        
         html += "</div>\n";
         html += "</div>\n";
 
@@ -148,7 +164,7 @@ public class PipelineOverview {
                 "<img src=\"EnglishPipeline.png\" width=\"500\" height=\"500\">\n" +
                 "</td>\n" +
                 "<td>\n" +
-                "<h1>Dutch pipeline</h1>\n" +
+                "<h1>Dutch pipeline and NAF layers</h1>\n" +
                 "<img src=\"DutchPipeline.png\" width=\"500\" height=\"500\">\n" +
                 "</td>\n"+
                 "</tr>\n";
@@ -157,13 +173,14 @@ public class PipelineOverview {
         return html;
     }
 
-    static String makeRow (File file1, File file2, File file3, File file4, File file5) {
+    static String makeRow (File file1, File file2, File file3, File file4, File file5, File file6) {
         String row = " <div class=\"divTableRow\">\n"
                 + makeHref(file1)
                 + makeHref(file2)
                 + makeHref(file3)
                 + makeHref(file4)
                 + makeHref(file5)
+                + makeHref(file6)
                 +"</div>\n";
         return row;
     }

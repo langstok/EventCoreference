@@ -67,14 +67,20 @@ public class GetSemFromNaf {
         /// if CROSSLINGUAL
         //useEnglishExternalReferences(kafSaxParser);
 
-
+        //nafSemParameters.printSettings();
         TimeLanguage.setLanguage(kafSaxParser.getLanguage());
         String baseUrl = kafSaxParser.getKafMetaData().getUrl().replaceAll("#", "HASH") + ID_SEPARATOR;
         String entityUri = ResourcesUri.nwrdata + nafSemParameters.getPROJECT() + "/entities/";
+
         if (!baseUrl.toLowerCase().startsWith("http")) {
            //  System.out.println("baseUrl = " + baseUrl);
             baseUrl = ResourcesUri.nwrdata + nafSemParameters.getPROJECT() + "/" + kafSaxParser.getKafMetaData().getUrl().replaceAll("#", "HASH") + ID_SEPARATOR;
         }
+
+        if (nafSemParameters.isLOCALCONTEXT()) {
+            entityUri = baseUrl;
+        }
+
         processNafFileForEntityCoreferenceSets(entityUri, baseUrl, kafSaxParser, semActors);
         if (nafSemParameters.isADDITIONALROLES()) {
             processSrlForRemainingFramenetRoles(nafSemParameters.getPROJECT(), kafSaxParser, semActors);
@@ -309,7 +315,7 @@ public class GetSemFromNaf {
                             KafCoreferenceSet kafCoreferenceSet = coreferenceSets.get(i);
                             for (int j = 0; j < kafCoreferenceSet.getSetsOfSpans().size(); j++) {
                                 ArrayList<CorefTarget> corefTargets = kafCoreferenceSet.getSetsOfSpans().get(j);
-                                if (corefTargets.size() <= Util.SPANMAXCOREFERENTSET) {
+                                if (corefTargets.size() <= nafSemParameters.getSPANMAXCOREFERENTSET()) {
                                     NafMention mention = Util.getNafMentionForCorefTargets(baseUrl, kafSaxParser, corefTargets);
                                     if (!Util.hasMention(mentionArrayList, mention)) {
                                         // System.out.println("corefTargets.toString() = " + corefTargets.toString());
@@ -450,9 +456,26 @@ public class GetSemFromNaf {
         HashMap<String, ArrayList<ArrayList<CorefTarget>>> mentionMap = new HashMap<String, ArrayList<ArrayList<CorefTarget>>>();
         String baseUrl = kafSaxParser.getKafMetaData().getUrl() + ID_SEPARATOR;
         if (!baseUrl.toLowerCase().startsWith("http")) {
-            baseUrl = ResourcesUri.nwrdata + project + "/" + kafSaxParser.getKafMetaData().getUrl() + ID_SEPARATOR;
+            if (kafSaxParser.getKafMetaData().getUrl().isEmpty()) {
+                if (kafSaxParser.fileName.isEmpty()) {
+                    baseUrl = ResourcesUri.nwrdata + project  + ID_SEPARATOR;
+
+                } else  {
+                     baseUrl = ResourcesUri.nwrdata + project + "/" + kafSaxParser.fileName + ID_SEPARATOR;
+                }
+            }
+            else {
+                baseUrl = ResourcesUri.nwrdata + project + "/" + kafSaxParser.getKafMetaData().getUrl() + ID_SEPARATOR;
+            }
+        }
+        else {
+           // System.out.println("baseUrl = " + baseUrl);
         }
         String entityUri = ResourcesUri.nwrdata + project + "/non-entities/";
+        if (nafSemParameters.isLOCALCONTEXT()) {
+            entityUri = baseUrl + "/non-entities/";
+          //  System.out.println("baseUrl based entityUri = " + entityUri);
+        }
         for (int i = 0; i < kafSaxParser.getKafEventArrayList().size(); i++) {
             KafEvent kafEvent = kafSaxParser.getKafEventArrayList().get(i);
             for (int k = 0; k < kafEvent.getParticipants().size(); k++) {
@@ -483,7 +506,7 @@ public class GetSemFromNaf {
                     continue;
                 }
                 //// we take all objects above threshold
-                ArrayList<SemObject> semObjects = Util.getAllMatchingObject(kafSaxParser, kafParticipant, semActors);
+                ArrayList<SemObject> semObjects = Util.getAllMatchingObject(kafSaxParser, kafParticipant, semActors, nafSemParameters);
                 if (semObjects.size() == 0) {
                     ///we have a missing additional actor
                     kafParticipant.setTokenStrings(kafSaxParser);
@@ -1108,11 +1131,6 @@ public class GetSemFromNaf {
                 for (int k = 0; k < kafEvent.getParticipants().size(); k++) {
                     KafParticipant kafParticipant = kafEvent.getParticipants().get(k);
                     // CERTAIN ROLES ARE NOT PROCESSED AND CAN BE SKIPPED
-                    //System.out.println(kafParticipant.getSpanIds().toString()+": kafParticipant.getRole() = " + kafParticipant.getRole());
-/*                    if (!RoleLabels.validRole(kafParticipant.getRole()) && !Util.hasEsoReference(kafParticipant.getExternalReferences())) {
-                        // System.out.println("invalid kafParticipant.getRole() = " + kafParticipant.getRole());
-                        continue;
-                    }*/
                     if (!RoleLabels.validRole(kafParticipant.getRole())
                             ) {
                         // System.out.println("invalid kafParticipant.getRole() = " + kafParticipant.getRole());
@@ -1123,7 +1141,7 @@ public class GetSemFromNaf {
                     }
 
                         //// we take all objects above threshold
-                    ArrayList<SemObject> semObjects = Util.getAllMatchingObject(kafSaxParser, kafParticipant, semActors);
+                    ArrayList<SemObject> semObjects = Util.getAllMatchingObject(kafSaxParser, kafParticipant, semActors, nafSemParameters);
                      // System.out.println("semObjects.size() = " + semObjects.size());
                     for (int l = 0; l < semObjects.size(); l++) {
                         SemObject semObject = semObjects.get(l);
