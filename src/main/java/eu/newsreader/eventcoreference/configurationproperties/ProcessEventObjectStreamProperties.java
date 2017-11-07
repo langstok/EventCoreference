@@ -15,7 +15,7 @@ public abstract class ProcessEventObjectStreamProperties {
 
     /**
      *  Indicates what is used to match events across resources.
-     *  Default value is \"ILILEMMA\". Values:\"LEMMA\", \"ILI\", \"ILILEMMA\"
+     *  Default value is "ILILEMMA". Values: "LEMMA", "ILI", "ILILEMMA"
      */
     private String contextualMatchType = "ILILEMMA";
 
@@ -27,9 +27,9 @@ public abstract class ProcessEventObjectStreamProperties {
 
 
     /**
-     * String with roles for which there must be a match, e.g. \"pb:A1, sem:hasActor\">\
+     * String with roles for which there must be a match, e.g. "pb:A1, sem:hasActor"
      */
-    private String contextualRoles;
+    private String contextualRoles = "";
 
 
     /**
@@ -65,7 +65,7 @@ public abstract class ProcessEventObjectStreamProperties {
     /**
      * String with roles for which there must be a match, e.g. \"pb:A1, sem:hasActor\
      */
-    private String grammaticalRoles;
+    private String grammaticalRoles = "";
 
 
     /**
@@ -80,7 +80,7 @@ public abstract class ProcessEventObjectStreamProperties {
     private boolean futureLcs = false;
 
     /**
-     * Amount of past days which are still considered recent and are treated differently>
+     * Amount of past days which are still considered recent and are treated differently
      */
     private int recentSpan;
 
