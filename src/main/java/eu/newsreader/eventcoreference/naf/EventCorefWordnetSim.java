@@ -5,11 +5,14 @@ package eu.newsreader.eventcoreference.naf;
  */
 
     import eu.kyotoproject.kaf.*;
+    import eu.newsreader.eventcoreference.configurationproperties.EventCorefProperties;
     import eu.newsreader.eventcoreference.objects.CorefMatch;
     import eu.newsreader.eventcoreference.objects.CorefResultSet;
     import eu.newsreader.eventcoreference.util.FrameTypes;
     import eu.newsreader.eventcoreference.util.Util;
+    import ixa.kaflib.KAFDocument;
     import org.apache.tools.bzip2.CBZip2InputStream;
+    import org.jdom2.JDOMException;
     import vu.wntools.wnsimilarity.WordnetSimilarityApi;
     import vu.wntools.wnsimilarity.measures.SimilarityPair;
     import vu.wntools.wordnet.WordnetData;
@@ -19,6 +22,7 @@ package eu.newsreader.eventcoreference.naf;
     import java.net.InetAddress;
     import java.net.UnknownHostException;
     import java.util.*;
+    import java.util.logging.Logger;
     import java.util.zip.GZIPInputStream;
 
 /**
@@ -29,6 +33,9 @@ package eu.newsreader.eventcoreference.naf;
      * To change this template use File | Settings | File Templates.
      */
     public class EventCorefWordnetSim {
+
+        Logger logger = Logger.getLogger(EventCorefWordnetSim.class.getName());
+
         static final String usage = "\nCompares predicates using one of the WN similarity function.\n"+
                 "   --wn-lmf                <path to wordnet file in lmf format\n" +
                 "   --method                <one of the following methods can be used leacock-chodorow, path, wu-palmer>\n"+
@@ -72,6 +79,62 @@ package eu.newsreader.eventcoreference.naf;
         static String extension = "";
         static String outputTag = "";
         static boolean STREAM = true;
+
+    private EventCorefProperties eventCorefProperties;
+
+    public EventCorefWordnetSim(EventCorefProperties eventCorefProperties) {
+        this.eventCorefProperties = eventCorefProperties;
+        init();
+    }
+
+    private void processArgs() {
+        this.pathToWNLMF = eventCorefProperties.getResources() + eventCorefProperties.getWnLlmf();
+        this.method = eventCorefProperties.getMethod();
+        for(String relation : eventCorefProperties.getRelations())
+            this.relations.add(relation);
+        simthreshold = eventCorefProperties.getSim();
+        simOntthreshold = eventCorefProperties.getSimOnt();
+        DRIFTMAX = eventCorefProperties.getDriftMax();
+        USEWSD = true;
+        WNPREFIX = eventCorefProperties.getWnPrefix();
+        WNSOURCETAG = eventCorefProperties.getWnSource();
+        sourceFrames = Util.ReadFileToStringVector(eventCorefProperties.getSourceFramesPath());
+        contextualFrames = Util.ReadFileToStringVector(eventCorefProperties.getContexualFramesPath());
+        grammaticalFrames = Util.ReadFileToStringVector(eventCorefProperties.getGrammaticalFramesPath());
+        REMOVEEVENTCOREFS = true;
+        REMOVEFALSEPREDICATES = true;
+    }
+
+    private void init(){
+        processArgs();
+        WordnetLmfSaxParser wordnetLmfSaxParser = new WordnetLmfSaxParser();
+        wordnetLmfSaxParser.setRelations(relations);
+        logger.info("parsing:" + pathToWNLMF);
+        wordnetLmfSaxParser.parseFile(pathToWNLMF);
+        logger.info("parsing done");
+        wordnetData = wordnetLmfSaxParser.wordnetData;
+    }
+
+    public KAFDocument transform(KAFDocument kafDocument) {
+        logger.info("KafSaxParser parseStringContent of KAFDocument:" + kafDocument.getPublic().publicId);
+        KafSaxParser kafSaxParser = new KafSaxParser();
+        kafSaxParser.parseStringContent(kafDocument.toString());
+        logger.info("Process Contextuals");
+        processContextuals(kafSaxParser, USEWSD);
+        try {
+            logger.info("result to KAFDocument");
+            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+            kafSaxParser.writeNafToStream(outputStream);
+            kafDocument = KAFDocument.createFromStream(new StringReader(outputStream.toString()));
+            outputStream.close();
+        } catch (IOException e) {
+            logger.severe("IOException creating KAFDocument from kafSaxParser xml" + e);
+        } catch (JDOMException e) {
+            logger.severe("JDOMException creating KAFDocument from kafSaxParser xml" + e);
+        }
+        return kafDocument;
+    }
+
 
         static public void processArgs (String [] args) {
             for (int i = 0; i < args.length; i++) {

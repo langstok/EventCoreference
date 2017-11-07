@@ -6,7 +6,7 @@
     <groupId>com.github.cltl</groupId>
 
     <artifactId>EventCoreference</artifactId>
-    <version>v3.1.2</version>
+    <version>3.1.3-SNAPSHOT</version>
     <packaging>jar</packaging>
     <name>EventCoreference and NAF2SEM-GRASP</name>
     <description>Reads NewsReader NAF files and creates event coreference relations in NAF or RDF-TRiG according to the NewsReader SEM and GRASP model.</description>
@@ -44,6 +44,11 @@
             <groupId>com.github.cltl</groupId>
             <artifactId>KafSaxParser</artifactId>
             <version>3.3.0-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>com.github.ixa-ehu</groupId>
+            <artifactId>kaflib-naf</artifactId>
+            <version>1.1.15</version>
         </dependency>
         <dependency>
             <groupId>net.sourceforge.owlapi</groupId>
@@ -123,11 +128,16 @@
             <classifier>models</classifier>
 -->
         </dependency>
-<!--        <dependency>
-            <groupId>com.google.protobuf</groupId>
-            <artifactId>protobuf-java</artifactId>
-            <version>3.0.2</version>
-        </dependency>-->
+        <dependency>
+            <groupId>org.jdom</groupId>
+            <artifactId>jdom2</artifactId>
+            <version>RELEASE</version>
+        </dependency>
+        <!--        <dependency>
+                    <groupId>com.google.protobuf</groupId>
+                    <artifactId>protobuf-java</artifactId>
+                    <version>3.0.2</version>
+                </dependency>-->
     </dependencies>
 
     <repositories>
