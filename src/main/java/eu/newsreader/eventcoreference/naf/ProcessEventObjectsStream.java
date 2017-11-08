@@ -136,7 +136,7 @@ public class ProcessEventObjectsStream {
         this.projectName = "";
         this.conceptMatchThreshold = processEventObjectStreamProperties.getConceptMatch();
         this.phraseMatchThreshold = processEventObjectStreamProperties.getPhraseMatch();
-        this.contextualMatchType = processEventObjectStreamProperties.getContextualMatchType();
+        this.contextualMatchType = processEventObjectStreamProperties.getContextualMatchType().name();
         this.contextualLcs = processEventObjectStreamProperties.isContextualLcs();
 
         String[] fields = processEventObjectStreamProperties.getContextualRoles().split(",");
@@ -145,7 +145,7 @@ public class ProcessEventObjectsStream {
             this.contextualNeededRoles.add(field);
         }
 
-        soureceMatchType = processEventObjectStreamProperties.getSourceMatchType();
+        soureceMatchType = processEventObjectStreamProperties.getSourceMatchType().name();
         sourceLcs = processEventObjectStreamProperties.isSourceLcs();
 
         String[] sourceNeededRolesFields = processEventObjectStreamProperties.getSourceRoles().split(",");
@@ -154,7 +154,7 @@ public class ProcessEventObjectsStream {
             sourceNeededRoles.add(field);
         }
 
-        grammaticalMatchType = processEventObjectStreamProperties.getGrammaticalMatchType();
+        grammaticalMatchType = processEventObjectStreamProperties.getGrammaticalMatchType().name();
         grammaticalLcs = processEventObjectStreamProperties.isGrammaticalLcs();
         String[] grammaticalRolesfields = processEventObjectStreamProperties.getGrammaticalRoles().split(",");
         for (int j = 0; j < grammaticalRolesfields.length; j++) {
@@ -162,7 +162,7 @@ public class ProcessEventObjectsStream {
             grammaticalNeededRoles.add(field);
         }
 
-        futureMatchType = processEventObjectStreamProperties.getFutureMatchType();
+        futureMatchType = processEventObjectStreamProperties.getFutureMatchType().name();
         futureLcs = processEventObjectStreamProperties.isFutureLcs();
         recentDays = processEventObjectStreamProperties.getRecentSpan();
 

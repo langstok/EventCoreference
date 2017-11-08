@@ -1,5 +1,7 @@
 package eu.newsreader.eventcoreference.configurationproperties;
 
+import eu.newsreader.eventcoreference.enumeration.MatchType;
+
 public abstract class ProcessEventObjectStreamProperties {
 
     /**
@@ -17,7 +19,7 @@ public abstract class ProcessEventObjectStreamProperties {
      *  Indicates what is used to match events across resources.
      *  Default value is "ILILEMMA". Values: "LEMMA", "ILI", "ILILEMMA"
      */
-    private String contextualMatchType = "ILILEMMA";
+    private MatchType contextualMatchType = MatchType.ILILEMMA;
 
 
     /**
@@ -33,13 +35,13 @@ public abstract class ProcessEventObjectStreamProperties {
 
 
     /**
-     * Indicates what is used to match events across resources. Default value is \"ILILEMMA\". Values:\"LEMMA\", \"ILI\", \"ILILEMMA\">\n" +
+     * Indicates what is used to match events across resources. Default value is "ILILEMMA". Values:"LEMMA, ILI, ILILEMMA" +
      */
-    private String sourceMatchType = "ILILEMMA";
+    private MatchType sourceMatchType = MatchType.ILILEMMA;
 
 
     /**
-     * Use lowest-common-subsumers. Default value is OFF.>\n" +
+     * Use lowest-common-subsumers. Default value is OFF." +
      */
     private boolean sourceLcs = false;
 
@@ -53,7 +55,7 @@ public abstract class ProcessEventObjectStreamProperties {
     /**
      * Indicates what is used to match events across resources. Default value is "LEMMA". Values:"LEMMA", "ILI", "ILILEMMA"
      */
-    private String grammaticalMatchType = "LEMMA";
+    private MatchType grammaticalMatchType = MatchType.LEMMA;
 
 
     /**
@@ -71,7 +73,7 @@ public abstract class ProcessEventObjectStreamProperties {
     /**
      * Indicates what is used to match events across resources. Default value is "LEMMA". Values:"LEMMA", "ILI", "ILILEMMA\
      */
-    private String futureMatchType = "LEMMA";
+    private MatchType futureMatchType = MatchType.LEMMA;
 
 
     /**
@@ -108,11 +110,11 @@ public abstract class ProcessEventObjectStreamProperties {
         this.phraseMatch = phraseMatch;
     }
 
-    public String getContextualMatchType() {
+    public MatchType getContextualMatchType() {
         return contextualMatchType;
     }
 
-    public void setContextualMatchType(String contextualMatchType) {
+    public void setContextualMatchType(MatchType contextualMatchType) {
         this.contextualMatchType = contextualMatchType;
     }
 
@@ -132,11 +134,11 @@ public abstract class ProcessEventObjectStreamProperties {
         this.contextualRoles = contextualRoles;
     }
 
-    public String getSourceMatchType() {
+    public MatchType getSourceMatchType() {
         return sourceMatchType;
     }
 
-    public void setSourceMatchType(String sourceMatchType) {
+    public void setSourceMatchType(MatchType sourceMatchType) {
         this.sourceMatchType = sourceMatchType;
     }
 
@@ -156,11 +158,11 @@ public abstract class ProcessEventObjectStreamProperties {
         this.sourceRoles = sourceRoles;
     }
 
-    public String getGrammaticalMatchType() {
+    public MatchType getGrammaticalMatchType() {
         return grammaticalMatchType;
     }
 
-    public void setGrammaticalMatchType(String grammaticalMatchType) {
+    public void setGrammaticalMatchType(MatchType grammaticalMatchType) {
         this.grammaticalMatchType = grammaticalMatchType;
     }
 
@@ -180,11 +182,11 @@ public abstract class ProcessEventObjectStreamProperties {
         this.grammaticalRoles = grammaticalRoles;
     }
 
-    public String getFutureMatchType() {
+    public MatchType getFutureMatchType() {
         return futureMatchType;
     }
 
-    public void setFutureMatchType(String futureMatchType) {
+    public void setFutureMatchType(MatchType futureMatchType) {
         this.futureMatchType = futureMatchType;
     }
 

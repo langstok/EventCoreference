@@ -78,7 +78,7 @@ public abstract class EventCorefProperties {
 	private boolean replace = false;
 
 	/**
-	 * Using this flag removes srl with predicate status = \"false"
+	 * Using this flag removes srl with predicate status = "false"
 	 */
 	private boolean ignoreFalse = true;
 

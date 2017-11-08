@@ -1,7 +1,7 @@
 package eu.newsreader.eventcoreference.configurationproperties;
 
 
-public abstract class SemProperties {
+public abstract class SemFromNafStreamProperties {
 
     /**
      * Extract all events, including events without time and without participants
