@@ -5,7 +5,11 @@ import java.util.List;
 
 public abstract class EventCorefProperties {
 
-	private String resources;
+
+	/**
+	 * Resources https://github.com/cltl/vua-resources.git
+	 */
+	private String resources = "../resources/";
 
 	/**
 	 * path to wordnet file in lmf format

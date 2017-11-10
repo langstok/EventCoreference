@@ -4,6 +4,12 @@ package eu.newsreader.eventcoreference.configurationproperties;
 public abstract class SemFromNafStreamProperties {
 
     /**
+     * Resources https://github.com/cltl/vua-resources.git
+     */
+    private String resources = "../resources/";
+
+
+    /**
      * Extract all events, including events without time and without participants
      */
     private boolean all = true;
@@ -11,7 +17,7 @@ public abstract class SemFromNafStreamProperties {
     /**
      * Include additional FrameNet roles and non-entity phrases
      */
-    private boolean nonEntities = false;
+    private boolean nonEntities = true;
 
     /**
      * ILI-identifiers are used to represents events. This is necessary for cross-lingual extraction
@@ -27,12 +33,12 @@ public abstract class SemFromNafStreamProperties {
     /**
      * GRaSP layer is included in the output
      */
-    private boolean perspective = false;
+    private boolean perspective = true;
 
     /**
      * The name of the project for creating project-specific URIs within the NewsReader domain
      */
-    private String project = "";
+    private String project = "end-to-end";
 
     /**
      * consider document creation time
@@ -65,12 +71,12 @@ public abstract class SemFromNafStreamProperties {
     /**
      * Eurovoc resource to map topic labels to topic concept identifiers
      */
-    private String pathToEurovocFile = "";
+    private String pathToEurovocFile = resources + "mapping_eurovoc_skos.csv";
 
     /**
      * Path to ILI.ttl file to convert wordnet-synsets identifiers to ILI identifiers
      */
-    private String pathToILIFile = "";
+    private String pathToILIFile = resources + "ili.ttl.gz";
 
     /**
      * Maximum number of time-expressions allows for an event to be included in the output. Excessive time links are problematic. The defeault value is 5
@@ -80,17 +86,17 @@ public abstract class SemFromNafStreamProperties {
     /**
      * Path to a file with the FrameNet frames considered sourc
      */
-    private String sourceFrames = "";
+    private String sourceFrames = resources +"source.txt";
 
     /**
      * Path to a file with the FrameNet frames considered grammatical
      */
-    private String grammaticalFrames = "";
+    private String grammaticalFrames = resources + "grammatical.txt";
 
     /**
      * Path to a file with the FrameNet frames considered contextual
      */
-    private String contextualFrames = "";
+    private String contextualFrames = resources + "contextual.txt";
 
 
     public boolean isAll() {
@@ -227,5 +233,13 @@ public abstract class SemFromNafStreamProperties {
 
     public void setContextualFrames(String contextualFrames) {
         this.contextualFrames = contextualFrames;
+    }
+
+    public String getResources() {
+        return resources;
+    }
+
+    public void setResources(String resources) {
+        this.resources = resources;
     }
 }
