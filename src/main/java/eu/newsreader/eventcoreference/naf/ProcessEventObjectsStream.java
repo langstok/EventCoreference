@@ -70,35 +70,35 @@ public class ProcessEventObjectsStream {
             "--future-lcs                        <Use lowest-common-subsumers. Default value is OFF.>\n" +
             "--recent-span              <int>    <Amount of past days which are still considered recent and are treated differently>\n";
 
-    public static String filename = "";
-    public String projectName = "cars";
+    private static String filename = "";
+    private String projectName = "cars";
 
-    public String contextualMatchType = "ILILEMMA";
-    public boolean contextualLcs = true;
+    private String contextualMatchType = "ILILEMMA";
+    private boolean contextualLcs = true;
 
-    public String soureceMatchType = "ILILEMMA";
-    public boolean sourceLcs = false;
+    private String soureceMatchType = "ILILEMMA";
+    private boolean sourceLcs = false;
 
-    public String grammaticalMatchType = "LEMMA";
-    public boolean grammaticalLcs = false;
+    private String grammaticalMatchType = "LEMMA";
+    private boolean grammaticalLcs = false;
 
-    public String futureMatchType = "LEMMA";
-    public boolean futureLcs = false;
+    private String futureMatchType = "LEMMA";
+    private boolean futureLcs = false;
 
-    public ArrayList<String> contextualNeededRoles = new ArrayList<String>();
-    public ArrayList<String> sourceNeededRoles = new ArrayList<String>();
-    public ArrayList<String> grammaticalNeededRoles = new ArrayList<String>();
+    private ArrayList<String> contextualNeededRoles = new ArrayList<>();
+    private ArrayList<String> sourceNeededRoles = new ArrayList<>();
+    private ArrayList<String> grammaticalNeededRoles = new ArrayList<>();
 
-    public int recentDays = 0;
+    private int recentDays = 0;
 
-    public String done = "";
+    private String done = "";
 
-    public String serviceEndpoint = "https://knowledgestore2.fbk.eu/nwr/aitor/sparql";
-    public String user = "nwr_partner";
-    public String pass = "ks=2014!";
+    private String serviceEndpoint = "https://knowledgestore2.fbk.eu/nwr/aitor/sparql";
+    private String user = "nwr_partner";
+    private String pass = "ks=2014!";
 
-    public int conceptMatchThreshold = 50;
-    public int phraseMatchThreshold = 50;
+    private int conceptMatchThreshold = 50;
+    private int phraseMatchThreshold = 50;
 
     public static final String NL = System.getProperty("line.separator");
 

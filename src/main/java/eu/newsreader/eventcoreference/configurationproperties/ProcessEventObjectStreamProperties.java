@@ -35,13 +35,13 @@ public abstract class ProcessEventObjectStreamProperties {
 
 
     /**
-     * Indicates what is used to match events across resources. Default value is "ILILEMMA". Values:"LEMMA, ILI, ILILEMMA" +
+     * Indicates what is used to match events across resources. Default value is "ILILEMMA". Values:"LEMMA, ILI, ILILEMMA"
      */
     private MatchType sourceMatchType = MatchType.ILILEMMA;
 
 
     /**
-     * Use lowest-common-subsumers. Default value is OFF." +
+     * Use lowest-common-subsumers. Default value is OFF."
      */
     private boolean sourceLcs = false;
 
@@ -65,13 +65,13 @@ public abstract class ProcessEventObjectStreamProperties {
 
 
     /**
-     * String with roles for which there must be a match, e.g. \"pb:A1, sem:hasActor\
+     * String with roles for which there must be a match, e.g. "pb:A1, sem:hasActor
      */
     private String grammaticalRoles = "";
 
 
     /**
-     * Indicates what is used to match events across resources. Default value is "LEMMA". Values:"LEMMA", "ILI", "ILILEMMA\
+     * Indicates what is used to match events across resources. Default value is "LEMMA". Values:"LEMMA", "ILI", "ILILEMMA
      */
     private MatchType futureMatchType = MatchType.LEMMA;
 
