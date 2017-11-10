@@ -84,14 +84,17 @@ public abstract class ProcessEventObjectStreamProperties {
     /**
      * Amount of past days which are still considered recent and are treated differently
      */
-    private int recentSpan;
+    private int recentSpan = 5;
 
 
-    private String knowledgeStore;
+    /**
+     * KnowledgeStore. Default Fuseki with dataset 'newsreader'
+     */
+    private String knowledgeStore = "http://localhost:3030/newsreader";
 
-    private String userName;
+    private String userName = "username";
 
-    private String password;
+    private String password = "password";
 
 
     public int getConceptMatch() {

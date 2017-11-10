@@ -22,10 +22,7 @@ import org.apache.jena.atlas.web.auth.SimpleAuthenticator;
 import org.apache.jena.riot.RDFDataMgr;
 import org.apache.jena.riot.RDFLanguages;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -254,6 +251,19 @@ public class ProcessEventObjectsStream {
         }
     }
 
+    public OutputStream processTrigInputStream(InputStream inputStream, OutputStream outputStream) {
+
+        Dataset ds = TDBFactory.createDataset();
+        Dataset dsnew = TDBFactory.createDataset();
+        readTrigFromStream(inputStream, ds, dsnew);
+
+        DatasetGraph gnew = process(ds, dsnew);
+        RDFDataMgr.write(outputStream, gnew, RDFLanguages.TRIG); // or NQUADS
+
+        return outputStream;
+    }
+
+
     public static String matchSingleTmx(Node tmx, DatasetGraph g, Model m){
         String sq="";
         if (g.contains(null, tmx, typeNode, instantNode)) { // One Instant
@@ -295,7 +305,7 @@ public class ProcessEventObjectsStream {
     }
 
 
-    public DatasetGraph process(Dataset ds, Dataset dsnew){
+    private DatasetGraph process(Dataset ds, Dataset dsnew){
 
         Model m = ds.getNamedModel("http://www.newsreader-project.eu/instances");
 
@@ -687,7 +697,7 @@ public class ProcessEventObjectsStream {
 
     }
 
-    public static void readTrigFromStream(InputStream is, Dataset ds, Dataset dsnew) throws IllegalArgumentException {
+    private static void readTrigFromStream(InputStream is, Dataset ds, Dataset dsnew) throws IllegalArgumentException {
         if (is==null)
             throw new IllegalArgumentException("No stream input!");
 
@@ -845,7 +855,6 @@ public class ProcessEventObjectsStream {
 
     private static void insertIdentity (DatasetGraph g, Node e1, Node e2){
         g.add(identityGraphNode, e1, identityNode, e2);
-
     }
 
     private ArrayList<Node> inferMultitimesIdentityRelations (String sparqlQuery, boolean matchILI, boolean matchLemma, boolean matchMultiple, int iliSize, String eventId) {
@@ -884,6 +893,8 @@ public class ProcessEventObjectsStream {
 
     private static boolean checkIliLemmaThreshold(int mysize, int kssize, int nMatches, int matchThreshold) {
 
+        if(mysize==0 || kssize==0)
+            return false;
         //System.out.println(mysize);
         //System.out.println(kssize);
         //System.out.println(nMatches);
