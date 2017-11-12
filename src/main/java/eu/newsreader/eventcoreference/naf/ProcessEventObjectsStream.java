@@ -21,13 +21,13 @@ import org.apache.jena.atlas.web.auth.HttpAuthenticator;
 import org.apache.jena.atlas.web.auth.SimpleAuthenticator;
 import org.apache.jena.riot.RDFDataMgr;
 import org.apache.jena.riot.RDFLanguages;
+import org.apache.log4j.Logger;
 
 import java.io.*;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.logging.Logger;
 
 /**
  * Created with IntelliJ IDEA.
@@ -38,7 +38,7 @@ import java.util.logging.Logger;
  */
 public class ProcessEventObjectsStream {
 
-    private static final Logger logger = Logger.getLogger(ProcessEventObjectsStream.class.getName());
+    private static final Logger logger = Logger.getLogger(ProcessEventObjectsStream.class);
 
 
 

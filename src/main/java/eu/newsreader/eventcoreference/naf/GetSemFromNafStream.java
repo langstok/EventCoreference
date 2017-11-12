@@ -120,7 +120,7 @@ public class GetSemFromNafStream {
     }
 
 
-    public static String getSem(KAFDocument kafDocument) throws UnsupportedEncodingException {
+    public static ByteArrayOutputStream getSem(KAFDocument kafDocument) throws UnsupportedEncodingException {
         ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
         PrintStream printStream = new PrintStream(byteArrayOutputStream, true, StandardCharsets.UTF_8.name());
 
@@ -128,8 +128,6 @@ public class GetSemFromNafStream {
         kafSaxParser.parseStringContent(kafDocument.toString());
 
         getSem(kafSaxParser, printStream);
-        String content = new String(byteArrayOutputStream.toByteArray(), StandardCharsets.UTF_8);
-        printStream.close();
-        return content;
+        return byteArrayOutputStream;
     }
 }
