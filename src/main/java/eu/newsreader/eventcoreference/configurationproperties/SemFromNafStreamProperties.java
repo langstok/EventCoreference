@@ -1,6 +1,9 @@
 package eu.newsreader.eventcoreference.configurationproperties;
 
 
+/**
+ *  Abstract to support annotations
+ */
 public abstract class SemFromNafStreamProperties {
 
     /**
