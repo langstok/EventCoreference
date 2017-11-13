@@ -39,6 +39,10 @@
         </developer>
     </developers>
 
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    </properties>
+
     <dependencies>
         <dependency>
             <groupId>com.github.cltl</groupId>
@@ -164,6 +168,7 @@
                     <source>1.8</source>
                     <target>1.8</target>
                     <debug>false</debug>
+                    <encoding>UTF-8</encoding>
                 </configuration>
             </plugin>
 
