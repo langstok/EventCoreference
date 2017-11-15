@@ -1,10 +1,7 @@
 package eu.newsreader.eventcoreference.configurationproperties;
 
 
-/**
- *  Abstract to support annotations
- */
-public abstract class SemFromNafStreamProperties {
+public class SemFromNafStreamProperties {
 
     /**
      * Resources https://github.com/cltl/vua-resources.git

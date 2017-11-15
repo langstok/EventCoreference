@@ -3,10 +3,8 @@ package eu.newsreader.eventcoreference.configurationproperties;
 import java.util.Arrays;
 import java.util.List;
 
-/**
- *  Abstract to support annotations
- */
-public abstract class EventCorefProperties {
+
+public class EventCorefProperties {
 
 
 	/**
