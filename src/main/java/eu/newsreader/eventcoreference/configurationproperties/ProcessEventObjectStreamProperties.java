@@ -2,8 +2,10 @@ package eu.newsreader.eventcoreference.configurationproperties;
 
 import eu.newsreader.eventcoreference.enumeration.MatchType;
 
-
-public class ProcessEventObjectStreamProperties {
+/**
+ *  Abstract to support annotations
+ */
+public abstract class ProcessEventObjectStreamProperties {
 
     /**
      * threshold for conceptual matches of events, default is 50
