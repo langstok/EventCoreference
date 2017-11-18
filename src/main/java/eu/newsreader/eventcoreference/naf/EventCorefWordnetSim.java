@@ -11,6 +11,7 @@ package eu.newsreader.eventcoreference.naf;
     import eu.newsreader.eventcoreference.util.FrameTypes;
     import eu.newsreader.eventcoreference.util.Util;
     import ixa.kaflib.KAFDocument;
+    import org.apache.log4j.Logger;
     import org.apache.tools.bzip2.CBZip2InputStream;
     import org.jdom2.JDOMException;
     import vu.wntools.wnsimilarity.WordnetSimilarityApi;
@@ -22,7 +23,6 @@ package eu.newsreader.eventcoreference.naf;
     import java.net.InetAddress;
     import java.net.UnknownHostException;
     import java.util.*;
-    import java.util.logging.Logger;
     import java.util.zip.GZIPInputStream;
 
 /**
@@ -34,7 +34,7 @@ package eu.newsreader.eventcoreference.naf;
      */
     public class EventCorefWordnetSim {
 
-        Logger logger = Logger.getLogger(EventCorefWordnetSim.class.getName());
+        private static final Logger logger = Logger.getLogger(EventCorefWordnetSim.class);
 
         static final String usage = "\nCompares predicates using one of the WN similarity function.\n"+
                 "   --wn-lmf                <path to wordnet file in lmf format\n" +
@@ -528,7 +528,7 @@ package eu.newsreader.eventcoreference.naf;
             ArrayList<File> files = Util.makeRecursiveFileList(pathToNafFolder, extension);
             for (int i = 0; i < files.size(); i++) {
                 File file = files.get(i);
-                System.out.println("file.getName() = " + file.getName());
+                logger.info("file.getName() = " + file.getName());
                 KafSaxParser kafSaxParser = new KafSaxParser();
                 kafSaxParser.parseFile(file);
                 processContextuals(kafSaxParser, USEWSD);

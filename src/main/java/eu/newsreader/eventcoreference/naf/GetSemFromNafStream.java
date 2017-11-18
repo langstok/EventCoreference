@@ -9,6 +9,7 @@ import eu.newsreader.eventcoreference.util.FrameTypes;
 import eu.newsreader.eventcoreference.util.MD5Checksum;
 import ixa.kaflib.KAFDocument;
 import org.apache.jena.atlas.logging.Log;
+import org.apache.log4j.Logger;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
@@ -20,11 +21,12 @@ import java.util.Scanner;
  */
 public class GetSemFromNafStream {
 
+    private static final Logger logger = Logger.getLogger(GetSemFromNafStream.class);
+
     private static NafSemParameters nafSemParameters = new NafSemParameters();
     private SemFromNafStreamProperties semProperties;
 
     static public void main(String[] args) {
-        Log.setLog4j("jena-log4j.properties");
         nafSemParameters = new NafSemParameters(args);
         KafSaxParser kafSaxParser = new KafSaxParser();
         kafSaxParser.parseFile(System.in);
@@ -89,22 +91,16 @@ public class GetSemFromNafStream {
                     compositeEventArraylist.add(compositeEvent);
                 }
                 else {
-/*
-                    System.out.println("Skipping EVENT due to no time anchor and/or no participant");
-                    System.out.println("compositeEvent = " + compositeEvent.getEvent().getURI());
-                    System.out.println("myTimes = " + myTimes.size());
-                    System.out.println("myActors = " + myActors.size());
-                    System.out.println("myRelations = " + myRelations.size());
-*/
+                    logger.error("Skipping EVENT due to no time anchor and/or no participant");
+                    logger.debug("compositeEvent="+compositeEvent.getEvent().getURI()
+                            +" myTimes="+myTimes.size()+" myActors="+myActors.size()+" myRelations="+myRelations.size());
                 }
             } else {
-/*
-                System.out.println("Skipping event due to excessive time expressions linked to it");
-                System.out.println("compositeEvent = " + compositeEvent.getEvent().getURI());
-                System.out.println("myTimes.size() = " + myTimes.size());
-*/
+                logger.error("Skipping event due to excessive time expressions linked to it");
+                logger.debug("compositeEvent="+compositeEvent.getEvent().getURI() +" myTimes="+myTimes.size());
             }
         }
+
         if (!nafSemParameters.isPERSPECTIVE()) {
             JenaSerialization.serializeJenaCompositeEvents(printStream, compositeEventArraylist, null, nafSemParameters.isILIURI(), nafSemParameters.isVERBOSE());
         }
