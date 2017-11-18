@@ -4,26 +4,26 @@ package eu.newsreader.eventcoreference.naf;
  * Created by piek on 10/02/16.
  */
 
-    import eu.kyotoproject.kaf.*;
-    import eu.newsreader.eventcoreference.configurationproperties.EventCorefProperties;
-    import eu.newsreader.eventcoreference.objects.CorefMatch;
-    import eu.newsreader.eventcoreference.objects.CorefResultSet;
-    import eu.newsreader.eventcoreference.util.FrameTypes;
-    import eu.newsreader.eventcoreference.util.Util;
-    import ixa.kaflib.KAFDocument;
-    import org.apache.log4j.Logger;
-    import org.apache.tools.bzip2.CBZip2InputStream;
-    import org.jdom2.JDOMException;
-    import vu.wntools.wnsimilarity.WordnetSimilarityApi;
-    import vu.wntools.wnsimilarity.measures.SimilarityPair;
-    import vu.wntools.wordnet.WordnetData;
-    import vu.wntools.wordnet.WordnetLmfSaxParser;
+import eu.kyotoproject.kaf.*;
+import eu.newsreader.eventcoreference.configurationproperties.EventCorefProperties;
+import eu.newsreader.eventcoreference.objects.CorefMatch;
+import eu.newsreader.eventcoreference.objects.CorefResultSet;
+import eu.newsreader.eventcoreference.util.FrameTypes;
+import eu.newsreader.eventcoreference.util.Util;
+import ixa.kaflib.KAFDocument;
+import org.apache.log4j.Logger;
+import org.apache.tools.bzip2.CBZip2InputStream;
+import org.jdom2.JDOMException;
+import vu.wntools.wnsimilarity.WordnetSimilarityApi;
+import vu.wntools.wnsimilarity.measures.SimilarityPair;
+import vu.wntools.wordnet.WordnetData;
+import vu.wntools.wordnet.WordnetLmfSaxParser;
 
-    import java.io.*;
-    import java.net.InetAddress;
-    import java.net.UnknownHostException;
-    import java.util.*;
-    import java.util.zip.GZIPInputStream;
+import java.io.*;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+import java.util.*;
+import java.util.zip.GZIPInputStream;
 
 /**
      * Created with IntelliJ IDEA.
@@ -128,9 +128,9 @@ package eu.newsreader.eventcoreference.naf;
             kafDocument = KAFDocument.createFromStream(new StringReader(outputStream.toString()));
             outputStream.close();
         } catch (IOException e) {
-            logger.severe("IOException creating KAFDocument from kafSaxParser xml" + e);
+            logger.error("IOException creating KAFDocument from kafSaxParser xml" + e);
         } catch (JDOMException e) {
-            logger.severe("JDOMException creating KAFDocument from kafSaxParser xml" + e);
+            logger.error("JDOMException creating KAFDocument from kafSaxParser xml" + e);
         }
         return kafDocument;
     }
