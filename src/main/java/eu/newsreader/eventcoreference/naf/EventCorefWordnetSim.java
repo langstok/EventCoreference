@@ -116,23 +116,25 @@ import java.util.zip.GZIPInputStream;
     }
 
     public KAFDocument transform(KAFDocument kafDocument) {
-        logger.info("KafSaxParser parseStringContent of KAFDocument:" + kafDocument.getPublic().publicId);
+        KAFDocument kafDocumentTransformed = kafDocument;
+
+        logger.info("KafSaxParser parseStringContent of KAFDocument:" + kafDocumentTransformed.getPublic().publicId);
         KafSaxParser kafSaxParser = new KafSaxParser();
-        kafSaxParser.parseStringContent(kafDocument.toString());
+        kafSaxParser.parseStringContent(kafDocumentTransformed.toString());
         logger.info("Process Contextuals");
         processContextuals(kafSaxParser, USEWSD);
         try {
             logger.info("result to KAFDocument");
             ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
             kafSaxParser.writeNafToStream(outputStream);
-            kafDocument = KAFDocument.createFromStream(new StringReader(outputStream.toString()));
+            kafDocumentTransformed = KAFDocument.createFromStream(new StringReader(outputStream.toString()));
             outputStream.close();
         } catch (IOException e) {
             logger.error("IOException creating KAFDocument from kafSaxParser xml" + e);
         } catch (JDOMException e) {
             logger.error("JDOMException creating KAFDocument from kafSaxParser xml" + e);
         }
-        return kafDocument;
+        return kafDocumentTransformed;
     }
 
 
