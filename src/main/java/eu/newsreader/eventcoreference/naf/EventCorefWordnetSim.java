@@ -6,14 +6,14 @@ package eu.newsreader.eventcoreference.naf;
 
 import eu.kyotoproject.kaf.*;
 import eu.newsreader.eventcoreference.configurationproperties.EventCorefProperties;
+import eu.newsreader.eventcoreference.constant.KAFConstants;
 import eu.newsreader.eventcoreference.objects.CorefMatch;
 import eu.newsreader.eventcoreference.objects.CorefResultSet;
 import eu.newsreader.eventcoreference.util.FrameTypes;
 import eu.newsreader.eventcoreference.util.Util;
-import ixa.kaflib.KAFDocument;
+import ixa.kaflib.*;
 import org.apache.log4j.Logger;
 import org.apache.tools.bzip2.CBZip2InputStream;
-import org.jdom2.JDOMException;
 import vu.wntools.wnsimilarity.WordnetSimilarityApi;
 import vu.wntools.wnsimilarity.measures.SimilarityPair;
 import vu.wntools.wordnet.WordnetData;
@@ -34,7 +34,7 @@ import java.util.zip.GZIPInputStream;
      */
     public class EventCorefWordnetSim {
 
-        private static final Logger logger = Logger.getLogger(EventCorefWordnetSim.class);
+    private static final Logger logger = Logger.getLogger(EventCorefWordnetSim.class);
 
         static final String usage = "\nCompares predicates using one of the WN similarity function.\n"+
                 "   --wn-lmf                <path to wordnet file in lmf format\n" +
@@ -52,11 +52,12 @@ import java.util.zip.GZIPInputStream;
                 "   --replace               <Using this flag previous output of event-coreference is removed first>\n" +
                 "   --ignore-false          <Using this flag removes srl with predicate status = \"false\">\n"
                 ;
+    public static final String EVENT = "event";
 
-        static boolean REMOVEFALSEPREDICATES = false;
+    static boolean REMOVEFALSEPREDICATES = false;
         static final String layer = "coreferences";
-        static final String name = "vua-event-coref-intradoc-wn-sim";
-        static final String version = "3.0";
+        static final String MODEL_NAME = "vua-event-coref-intradoc-wn-sim";
+        static String version = "3.0";
         static Vector<String> sourceFrames = new Vector<String>();
         static Vector<String> grammaticalFrames = new Vector<String>();
         static Vector<String> contextualFrames = new Vector<String>();
@@ -84,6 +85,7 @@ import java.util.zip.GZIPInputStream;
 
     public EventCorefWordnetSim(EventCorefProperties eventCorefProperties) {
         this.eventCorefProperties = eventCorefProperties;
+        this.version = this.getClass().getPackage().getImplementationVersion();
         init();
     }
 
@@ -116,26 +118,59 @@ import java.util.zip.GZIPInputStream;
     }
 
     public KAFDocument transform(KAFDocument kafDocument) {
-        KAFDocument kafDocumentTransformed = kafDocument;
+        KAFDocument.LinguisticProcessor newLp = kafDocument.addLinguisticProcessor(
+                KAFConstants.LAYER_COREFENCES, MODEL_NAME);
+        newLp.setVersion(this.version);
 
-        logger.info("KafSaxParser parseStringContent of KAFDocument:" + kafDocumentTransformed.getPublic().publicId);
+        logger.info("KafSaxParser parseStringContent of KAFDocument:" + kafDocument.getPublic().publicId);
         KafSaxParser kafSaxParser = new KafSaxParser();
-        kafSaxParser.parseStringContent(kafDocumentTransformed.toString());
+        kafSaxParser.parseStringContent(kafDocument.toString());
+
         logger.info("Process Contextuals");
+        newLp.setBeginTimestamp();
         processContextuals(kafSaxParser, USEWSD);
-        try {
-            logger.info("result to KAFDocument");
-            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-            kafSaxParser.writeNafToStream(outputStream);
-            kafDocumentTransformed = KAFDocument.createFromStream(new StringReader(outputStream.toString()));
-            outputStream.close();
-        } catch (IOException e) {
-            logger.error("IOException creating KAFDocument from kafSaxParser xml" + e);
-        } catch (JDOMException e) {
-            logger.error("JDOMException creating KAFDocument from kafSaxParser xml" + e);
-        }
-        return kafDocumentTransformed;
+        addLayer(kafDocument, kafSaxParser);
+        newLp.setEndTimestamp();
+
+        logger.info("result to KAFDocument");
+        return kafDocument;
     }
+
+
+    private KAFDocument addLayer(KAFDocument kafDocument, KafSaxParser kafSaxParser){
+
+        kafSaxParser.kafCorefenceArrayList.forEach(kafCorefSet ->{
+
+            if(!kafCorefSet.getType().equals(EVENT))
+                return;
+
+            ArrayList<ArrayList<CorefTarget>> setsOfSpans = kafCorefSet.getSetsOfSpans();
+            List<Span<Term>> mentions = new ArrayList<>();
+
+            setsOfSpans.forEach(corefTargetList -> corefTargetList.forEach(corefTarget ->  {
+                int termIndex = Integer.parseInt(corefTarget.getId().replace("t",""))-1;
+                Term term = kafDocument.getTerms().get(termIndex);
+                Span<Term> termSpan = KAFDocument.newTermSpan();
+                termSpan.addTarget(term);
+                mentions.add(termSpan);
+                }));
+
+            Coref coref = kafDocument.newCoref(kafCorefSet.getCoid(), mentions);
+            coref.setType(kafCorefSet.getType());
+
+            ArrayList<KafSense> externalReferences = kafCorefSet.getExternalReferences();
+            externalReferences.forEach(kafSense ->{
+                ExternalRef externalRef = kafDocument.newExternalRef(kafSense.getResource());
+                externalRef.setConfidence((float) kafSense.getConfidence());
+                externalRef.setSource(kafSense.getSource());
+                externalRef.setReference(kafSense.getSensecode());
+                coref.addExternalRef(externalRef);
+            });
+
+        });
+        return kafDocument;
+    }
+
 
 
         static public void processArgs (String [] args) {
@@ -714,7 +749,7 @@ import java.util.zip.GZIPInputStream;
                 KafCoreferenceSet kafCoreferenceSet = corefResultSet.castToKafCoreferenceSetResource(wordnetData);
                 String corefId = "coevent" + (kafSaxParser.kafCorefenceArrayList.size() + 1);
                 kafCoreferenceSet.setCoid(corefId);
-                kafCoreferenceSet.setType("event");
+                kafCoreferenceSet.setType(EVENT);
                 kafSaxParser.kafCorefenceArrayList.add(kafCoreferenceSet);
             }
 
@@ -728,7 +763,7 @@ import java.util.zip.GZIPInputStream;
             } catch (UnknownHostException e) {
                 e.printStackTrace();
             }
-            LP lp = new LP(name,version, strBeginDate, strBeginDate, strEndDate, host);
+            LP lp = new LP(MODEL_NAME,version, strBeginDate, strBeginDate, strEndDate, host);
             kafSaxParser.getKafMetaData().addLayer(layer, lp);
 
         }
@@ -997,7 +1032,7 @@ import java.util.zip.GZIPInputStream;
             } catch (UnknownHostException e) {
                 e.printStackTrace();
             }
-            LP lp = new LP(name,version, strBeginDate, strBeginDate, strEndDate, host);
+            LP lp = new LP(MODEL_NAME,version, strBeginDate, strBeginDate, strEndDate, host);
             kafSaxParser.getKafMetaData().addLayer(layer, lp);
 
         }
@@ -1202,7 +1237,7 @@ import java.util.zip.GZIPInputStream;
                 KafCoreferenceSet kafCoreferenceSet = corefResultSet.castToKafCoreferenceSetResource(wordnetData);
                 String corefId = "coevent" + (kafSaxParser.kafCorefenceArrayList.size() + 1);
                 kafCoreferenceSet.setCoid(corefId);
-                kafCoreferenceSet.setType("event");
+                kafCoreferenceSet.setType(EVENT);
                 kafSaxParser.kafCorefenceArrayList.add(kafCoreferenceSet);
             }
 
@@ -1238,7 +1273,7 @@ import java.util.zip.GZIPInputStream;
             } catch (UnknownHostException e) {
                 e.printStackTrace();
             }
-            LP lp = new LP(name,version, strBeginDate, strBeginDate, strEndDate, host);
+            LP lp = new LP(MODEL_NAME,version, strBeginDate, strBeginDate, strEndDate, host);
             kafSaxParser.getKafMetaData().addLayer(layer, lp);
 
         }
@@ -1323,7 +1358,7 @@ import java.util.zip.GZIPInputStream;
             ArrayList<KafCoreferenceSet> fixedSets = new ArrayList<KafCoreferenceSet>();
             for (int i = 0; i < kafSaxParser.kafCorefenceArrayList.size(); i++) {
                 KafCoreferenceSet kafCoreferenceSet = kafSaxParser.kafCorefenceArrayList.get(i);
-                if (kafCoreferenceSet.getType().toLowerCase().startsWith("event")) {
+                if (kafCoreferenceSet.getType().toLowerCase().startsWith(EVENT)) {
                     if (kafCoreferenceSet.getExternalReferences().size()>DRIFTMAX) {
                         HashMap<String, KafCoreferenceSet> corefMap = new HashMap<String, KafCoreferenceSet>();
                         int nSubSets = 0;
