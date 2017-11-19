@@ -12,7 +12,6 @@ import org.apache.log4j.Logger;
 
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
-import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 
@@ -30,7 +29,12 @@ public class GetSemFromNafStream {
         nafSemParameters = new NafSemParameters(args);
         KafSaxParser kafSaxParser = new KafSaxParser();
         kafSaxParser.parseFile(System.in);
-        getSem(kafSaxParser, System.out);
+        try {
+            getSem(kafSaxParser, System.out);
+        }
+        catch(Exception e){
+            logger.error(e.getMessage(), e);
+        }
     }
 
 
@@ -60,7 +64,7 @@ public class GetSemFromNafStream {
     }
 
 
-    public static void getSem(KafSaxParser kafSaxParser, PrintStream printStream){
+    public static void getSem(KafSaxParser kafSaxParser, PrintStream printStream) throws Exception {
 
         ArrayList<SemObject> semEvents = new ArrayList<>();
         ArrayList<SemObject> semActors = new ArrayList<>();
@@ -68,13 +72,9 @@ public class GetSemFromNafStream {
         ArrayList<SemRelation> semRelations = new ArrayList<>();
 
         if (kafSaxParser.getKafMetaData().getUrl().isEmpty()) { //TODO add url validator
-            try {
-                logger.warn("Empty url in header NAF. Try to use rawText as checksum create unique URIs!");
-                String checkSum = MD5Checksum.getMD5ChecksumFromString(kafSaxParser.rawText);
-                kafSaxParser.getKafMetaData().setUrl(checkSum);
-            } catch (Exception e) {
-                logger.error("Unable to get checkSum of rawText", e);
-            }
+            logger.warn("Empty url in header NAF. Try to use rawText as checksum create unique URIs!");
+            String checkSum = MD5Checksum.getMD5ChecksumFromString(kafSaxParser.rawText);
+            kafSaxParser.getKafMetaData().setUrl(checkSum);
         }
 
         GetSemFromNaf.processNafFile(nafSemParameters, kafSaxParser, semEvents, semActors, semTimes, semRelations );
@@ -123,7 +123,7 @@ public class GetSemFromNafStream {
     }
 
 
-    public static ByteArrayOutputStream getSem(KAFDocument kafDocument) throws UnsupportedEncodingException {
+    public static ByteArrayOutputStream getSem(KAFDocument kafDocument) throws Exception {
         ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
         PrintStream printStream = new PrintStream(byteArrayOutputStream, true, StandardCharsets.UTF_8.name());
 
