@@ -8,13 +8,13 @@ import eu.newsreader.eventcoreference.output.JenaSerialization;
 import eu.newsreader.eventcoreference.util.FrameTypes;
 import eu.newsreader.eventcoreference.util.MD5Checksum;
 import ixa.kaflib.KAFDocument;
-import org.apache.jena.atlas.logging.Log;
 import org.apache.log4j.Logger;
 
-import java.io.*;
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
+import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Scanner;
 
 /**
  * Created by piek on 2/12/14.
@@ -61,46 +61,53 @@ public class GetSemFromNafStream {
 
 
     public static void getSem(KafSaxParser kafSaxParser, PrintStream printStream){
+
         ArrayList<SemObject> semEvents = new ArrayList<>();
         ArrayList<SemObject> semActors = new ArrayList<>();
-        ArrayList<SemTime> semTimes = new ArrayList<SemTime>();
-        ArrayList<SemRelation> semRelations = new ArrayList<SemRelation>();
+        ArrayList<SemTime> semTimes = new ArrayList<>();
+        ArrayList<SemRelation> semRelations = new ArrayList<>();
 
-
-        if (kafSaxParser.getKafMetaData().getUrl().isEmpty()) {
-            //System.err.println("ERROR! Empty url in header NAF. Cannot create unique URIs! Aborting");
+        if (kafSaxParser.getKafMetaData().getUrl().isEmpty()) { //TODO add url validator
             try {
+                logger.warn("Empty url in header NAF. Try to use rawText as checksum create unique URIs!");
                 String checkSum = MD5Checksum.getMD5ChecksumFromString(kafSaxParser.rawText);
-                //  System.err.println("checkSum = " + checkSum);
                 kafSaxParser.getKafMetaData().setUrl(checkSum);
             } catch (Exception e) {
-                //   e.printStackTrace();
+                logger.error("Unable to get checkSum of rawText", e);
             }
         }
+
         GetSemFromNaf.processNafFile(nafSemParameters, kafSaxParser, semEvents, semActors, semTimes, semRelations );
-        ArrayList<CompositeEvent> compositeEventArraylist = new ArrayList<CompositeEvent>();
+        ArrayList<CompositeEvent> compositeEventArraylist = new ArrayList<>();
         for (int j = 0; j < semEvents.size(); j++) {
+
             SemEvent mySemEvent = (SemEvent) semEvents.get(j);
             ArrayList<SemTime> myTimes = ComponentMatch.getMySemTimes(mySemEvent, semRelations, semTimes);
             ArrayList<SemActor> myActors = ComponentMatch.getMySemActors(mySemEvent, semRelations, semActors);
             ArrayList<SemRelation> myRelations = ComponentMatch.getMySemRelations(mySemEvent, semRelations);
+
             CompositeEvent compositeEvent = new CompositeEvent(mySemEvent, myActors, myTimes, myRelations);
-            if (myTimes.size() <= nafSemParameters.getTIMEEXPRESSIONMAX()) {
-                if (compositeEvent.isValid()) {
-                    FrameTypes.setEventTypeString(compositeEvent.getEvent(), nafSemParameters);
-                    compositeEventArraylist.add(compositeEvent);
-                }
-                else {
-                    logger.error("Skipping EVENT due to no time anchor and/or no participant");
-                    logger.debug("compositeEvent="+compositeEvent.getEvent().getURI()
-                            +" myTimes="+myTimes.size()+" myActors="+myActors.size()+" myRelations="+myRelations.size());
-                }
-            } else {
-                logger.error("Skipping event due to excessive time expressions linked to it");
-                logger.debug("compositeEvent="+compositeEvent.getEvent().getURI() +" myTimes="+myTimes.size());
+            if (myTimes.size() > nafSemParameters.getTIMEEXPRESSIONMAX()) {
+                logger.debug("Skipping event due to excessive time expressions linked to it. " +
+                        "compositeEvent="+compositeEvent.getEvent().getURI() +" myTimes="+myTimes.size());
+                continue;
             }
+            if (!compositeEvent.isValid()) {
+                logger.debug("Skipping event due to no time anchor and/or no participant. " +
+                        "compositeEvent=" + compositeEvent.getEvent().getURI()
+                        + " myTimes=" + myTimes.size() + " myActors=" + myActors.size() + " myRelations=" + myRelations.size());
+                continue;
+            }
+
+            FrameTypes.setEventTypeString(compositeEvent.getEvent(), nafSemParameters);
+            compositeEventArraylist.add(compositeEvent);
         }
 
+        logger.info("Serialize compositeEventSize="+compositeEventArraylist.size()+" for docId="+kafSaxParser.getDocId());
+        serializeCompositeEvent(printStream, kafSaxParser, compositeEventArraylist, semEvents, semActors);
+    }
+
+    public static void serializeCompositeEvent(PrintStream printStream, KafSaxParser kafSaxParser, ArrayList<CompositeEvent> compositeEventArraylist, ArrayList<SemObject> semEvents, ArrayList<SemObject> semActors){
         if (!nafSemParameters.isPERSPECTIVE()) {
             JenaSerialization.serializeJenaCompositeEvents(printStream, compositeEventArraylist, null, nafSemParameters.isILIURI(), nafSemParameters.isVERBOSE());
         }
