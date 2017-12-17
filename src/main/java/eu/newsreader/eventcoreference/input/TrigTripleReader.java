@@ -125,7 +125,7 @@ public class TrigTripleReader {
         return trigTripleData;
     }
 
-    static public TrigTripleData readInstanceTripleFromTrigFiles (String STAT, ArrayList<File> trigFiles) {
+    static public TrigTripleData readInstanceTripleFromTrigFiles (String STAT, ArrayList<File> trigFiles, int n) {
         TrigTripleData trigTripleData = new TrigTripleData();
         Dataset dataset = TDBFactory.createDataset();
 
@@ -136,6 +136,9 @@ public class TrigTripleReader {
             if (i%500==0) {
                 System.out.println("i = " + i);
             }
+            if (n>0 && i==n) {
+                break;
+            }
            // System.out.println("file.getName() = " + file.getName());
             try {
                 dataset = RDFDataMgr.loadDataset(file.getAbsolutePath());
@@ -144,7 +147,21 @@ public class TrigTripleReader {
                 while (siter.hasNext()) {
                     Statement s = siter.nextStatement();
                     String subject = s.getSubject().getURI();
-                    if (STAT.isEmpty()) {
+                    //// store all label info
+                    if (s.getPredicate().getLocalName().equals("label") ||
+                        s.getPredicate().getLocalName().equals("count")
+                            ){
+                        if (trigTripleData.tripleMapLabels.containsKey(subject)) {
+                            ArrayList<Statement> triples = trigTripleData.tripleMapLabels.get(subject);
+                            triples.add(s);
+                            trigTripleData.tripleMapLabels.put(subject, triples);
+                        } else {
+                            ArrayList<Statement> triples = new ArrayList<Statement>();
+                            triples.add(s);
+                            trigTripleData.tripleMapLabels.put(subject, triples);
+                        }
+                    }
+                    else if (STAT.isEmpty()) {
                         if (trigTripleData.tripleMapInstances.containsKey(subject)) {
                             ArrayList<Statement> triples = trigTripleData.tripleMapInstances.get(subject);
                             triples.add(s);
@@ -216,6 +233,7 @@ public class TrigTripleReader {
 
 
         }
+        System.out.println("trigTripleData labels = " + trigTripleData.tripleMapLabels.size());
         System.out.println("trigTripleData instances = " + trigTripleData.tripleMapInstances.size());
         return trigTripleData;
     }
@@ -339,7 +357,7 @@ public class TrigTripleReader {
                 }
             }
             dataset.close();
-            dataset = null;
+            //dataset = null;
         } catch (Exception e) {
             e.printStackTrace();
         }

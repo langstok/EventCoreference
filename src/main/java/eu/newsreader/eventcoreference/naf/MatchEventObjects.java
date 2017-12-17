@@ -3,6 +3,7 @@ package eu.newsreader.eventcoreference.naf;
 import eu.kyotoproject.kaf.KafSense;
 import eu.newsreader.eventcoreference.coref.ComponentMatch;
 import eu.newsreader.eventcoreference.objects.CompositeEvent;
+import eu.newsreader.eventcoreference.objects.NafMention;
 import eu.newsreader.eventcoreference.objects.SemObject;
 import eu.newsreader.eventcoreference.objects.SourceMeta;
 import eu.newsreader.eventcoreference.output.JenaSerialization;
@@ -33,6 +34,7 @@ public class MatchEventObjects {
     static boolean GZIP = false;
     static boolean SUBFOLDER = false;
     static int DEBUG = 0;
+    static ArrayList<String> tokenIds = new ArrayList<String>();
     public static String MATCHTYPE= "ililemma";  // ili OR lemma OR ililemma OR none OR split
     public static boolean HYPERS = false;
     public static boolean LCS = false;
@@ -62,7 +64,7 @@ public class MatchEventObjects {
             "--subfolder                <(OPTIONAL) Processes any subfolder>\n" +
             "--debug                    <(OPTIONAL) default=0, 1=minimal, 2=max>\n";
 
-
+    static String testArguments = "--event-folder /Users/piek/Desktop/Yassine/s1b2b/events/all --concept-match 80 --phrase-match 68 --ili /Code/vu/newsreader/vua-resources/ili.ttl.gz --hypers --lcs --chaining 3 --match-type ILILEMMA --verbose --debug 0 --time day --roles a0,a1,a2 --token-id /Users/piek/Desktop/Yassine/s1b2b.key.tokens";
     static public void main (String [] args) {
         Log.setLog4j("jena-log4j.properties");
         ArrayList<String> roleNeededArrayList = new ArrayList<String>();
@@ -72,7 +74,7 @@ public class MatchEventObjects {
         int phraseMatchThreshold = 50;
         String pathToEventFolder = "";
         String pathToSourceDataFile = "";
-
+        if (args.length==0) args = testArguments.split(" ");
         if (args.length==1 && args[0].equals("--help")) {
             System.out.println("usage = " + usage);
             return;
@@ -97,6 +99,11 @@ public class MatchEventObjects {
                 } catch (NumberFormatException e) {
                     e.printStackTrace();
                 }
+            }
+            else if (arg.equals("--token-id") && args.length>(i+1)) {
+                String tokenidPath = args[i + 1];
+                tokenIds = Util.ReadFileToStringArrayList(tokenidPath);
+                System.out.println("tokenIds = " + tokenIds.size());
             }
             else if (arg.equals("--subfolder")) {
                 SUBFOLDER = true;
@@ -533,6 +540,13 @@ public class MatchEventObjects {
                         readCompositeEventArrayListFromObjectFile(file, allCompositeEvents);
                         if (DEBUG == 2) System.out.println("events.size() = " + allCompositeEvents.size());
                     }
+
+                    if (tokenIds.size()>0) {
+                        System.out.println("allCompositeEvents = " + allCompositeEvents.size());
+                        allCompositeEvents = removeEventsWithoutTokenIds(allCompositeEvents);
+                        System.out.println("relevant events  = " + allCompositeEvents.size());
+
+                    }
                     /// we create an ArrayList with the event ids so that we can call the recursive chaining function
                     ArrayList<String> eventIds = new ArrayList<String>();
                     Set keySet = allCompositeEvents.keySet();
@@ -621,6 +635,11 @@ public class MatchEventObjects {
                                 VERBOSEMENTIONS);
                     } else {
 
+                        System.out.println("###################################");
+                        System.out.println("FINAL NUMBER OF EVENTS = " + allCompositeEvents.size());
+                        if (DEBUG>1) {
+                            JenaSerialization.DEBUG = true;
+                        }
                         JenaSerialization.serializeJenaSingleCompositeEvents(fos,
                                 allCompositeEvents,
                                 sourceMetaHashMap,
@@ -641,7 +660,50 @@ public class MatchEventObjects {
 
     }
 
-
+    static HashMap<String, CompositeEvent> removeEventsWithoutTokenIds (HashMap<String, CompositeEvent> allCompositeEvents) {
+        HashMap<String, CompositeEvent> selectedEvents = new HashMap<String, CompositeEvent>();
+        Set keySet = allCompositeEvents.keySet();
+        Iterator<String> keys = keySet.iterator();
+        while (keys.hasNext()) {
+            String key = keys.next();
+            CompositeEvent compositeEvent = allCompositeEvents.get(key);
+            SemObject event = compositeEvent.getEvent();
+            boolean match = false;
+            for (int i = 0; i < event.getNafMentions().size(); i++) {
+                NafMention nafMention = event.getNafMentions().get(i);
+                for (int j = 0; j < tokenIds.size(); j++) {
+                    String s = tokenIds.get(j);
+                    String [] fields = s.split("\t");
+                    if (fields.length==3) {
+/*                        if (nafMention.getBaseUri().indexOf(fields[0])>-1) {
+                            System.out.println("fields[0] = " + fields[0]);
+                            System.out.println("fields[1] = " + fields[1]);
+                            System.out.println("fields[2] = " + fields[2]);
+                            System.out.println("nafMention: ");
+                            System.out.println(" = " + nafMention.getBaseUri());
+                            System.out.println(" = " + nafMention.getSentence());
+                            System.out.println(" = " + nafMention.getTokensIds().toString());
+                        }*/
+                        if (nafMention.getBaseUri().indexOf(fields[0])>-1
+                                &&
+                                nafMention.getSentence().equals(fields[1])
+                                &&
+                                nafMention.getTokensIds().contains("w"+fields[2])) {
+                            //// we have a match
+                            match = true;
+                            break;
+                        }
+                    }
+                }
+                if (match) {
+                    selectedEvents.put(key, compositeEvent);
+                    break;
+                }
+            }
+        }
+        System.out.println("selectedEvents = " + selectedEvents.size());
+        return selectedEvents;
+    }
 
     public static void readCompositeEventArrayListFromObjectFile (File file, HashMap<String,CompositeEvent> events) {
         if (file.exists() ) {
@@ -756,15 +818,26 @@ public class MatchEventObjects {
                 }
             }
             if (EVENTMATCH) {
+
                 if (roleNeededArrayList.contains("none") || roleNeededArrayList.size()==0) {
                     if (!TIME.isEmpty()) {
+                        if (DEBUG>0) System.out.println("TIME = " + TIME);
+                        if (DEBUG>0) System.out.println("myCompositeEvent = " + myCompositeEvent.getEvent().getId());
+                        if (DEBUG>0) System.out.println("compositeEvent1.getMySemTimes().size() = " + myCompositeEvent.getMySemTimes().size());
+                        if (DEBUG>0) System.out.println("targetEvent = " + targetEvent.getEvent().getId());
+                        if (DEBUG>0) System.out.println("targetEvent.getMySemTimes().size() = " + targetEvent.getMySemTimes().size());
+
                         if (ComponentMatch.compareTimeCompositeEvent(myCompositeEvent, targetEvent, TIME)) {
+                            if (DEBUG>0) System.out.println("MATCHED BY TIME");
                             targetEvent.getEvent().mergeSemObject(myCompositeEvent.getEvent());
                             targetEvent.mergeObjects(myCompositeEvent);
                             targetEvent.mergeRelations(myCompositeEvent);
                             allCompositeEvents.remove(myCompositeEvent.getEvent().getId());
                             mergedEventId = targetEvent.getEvent().getId();
                             break;
+                        }
+                        else {
+                            if (DEBUG>0) System.out.println("TIME MISMATCH");
                         }
                     }
                     else {
@@ -776,9 +849,11 @@ public class MatchEventObjects {
                         break;
                     }
                 }
-                else if (ComponentMatch.compareCompositeEvent(myCompositeEvent, targetEvent, roleNeededArrayList)) {
+                else  if (ComponentMatch.compareCompositeEvent(myCompositeEvent, targetEvent, roleNeededArrayList, DEBUG>0)) {
                     if (!TIME.isEmpty()) {
+                        if (DEBUG>0) System.out.println("MATCHED BY PARTICIPANT, NEXT MATCH BY TIME:"+TIME);
                         if (ComponentMatch.compareTimeCompositeEvent(myCompositeEvent, targetEvent, TIME)) {
+                            if (DEBUG>0) System.out.println("MATCHED BY TIME");
                             targetEvent.getEvent().mergeSemObject(myCompositeEvent.getEvent());
                             targetEvent.mergeObjects(myCompositeEvent);
                             targetEvent.mergeRelations(myCompositeEvent);
@@ -786,8 +861,13 @@ public class MatchEventObjects {
                             mergedEventId = targetEvent.getEvent().getId();
                             break;
                         }
+                        else {
+                            if (DEBUG>0) System.out.println("TIME MISMATCH");
+                        }
                     }
                     else {
+                        if (DEBUG>0) System.out.println("MATCHED BY PARTICIPANT");
+
                         targetEvent.getEvent().mergeSemObject(myCompositeEvent.getEvent());
                         targetEvent.mergeObjects(myCompositeEvent);
                         targetEvent.mergeRelations(myCompositeEvent);
@@ -798,7 +878,7 @@ public class MatchEventObjects {
                 }
             }
             else {
-               // System.out.println("NO EVENTMATCH");
+                if (DEBUG>0) System.out.println("NO EVENTMATCH");
             }
         }
         return mergedEventId;
@@ -889,7 +969,7 @@ public class MatchEventObjects {
                         swallowedEvents.add(targetEvent.getEvent().getId());
                     }
                 }
-                else if (ComponentMatch.compareCompositeEvent(myCompositeEvent, targetEvent, roleNeededArrayList)) {
+                else if (ComponentMatch.compareCompositeEvent(myCompositeEvent, targetEvent, roleNeededArrayList,DEBUG>0)) {
                     if (!TIME.isEmpty()) {
                         if (ComponentMatch.compareTimeCompositeEvent(myCompositeEvent, targetEvent, TIME)) {
                             myCompositeEvent.getEvent().mergeSemObject(targetEvent.getEvent());
@@ -1473,7 +1553,7 @@ public class MatchEventObjects {
                     }
                 }
                 if (EVENTMATCH) {
-                    if (ComponentMatch.compareCompositeEvent(myCompositeEvent, targetEvent, roleNeededArrayList)) {
+                    if (ComponentMatch.compareCompositeEvent(myCompositeEvent, targetEvent, roleNeededArrayList, DEBUG>0)) {
                         match = true;
                         targetEvent.getEvent().mergeSemObject(myCompositeEvent.getEvent());
                         targetEvent.mergeObjects(myCompositeEvent);

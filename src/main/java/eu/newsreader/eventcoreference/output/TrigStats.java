@@ -23,6 +23,7 @@ import static eu.newsreader.eventcoreference.storyline.JsonFromRdf.getValue;
 public class TrigStats {
 
     static public String STAT = "";
+    static public boolean uselocalurl = false;
 
     static HashMap<String, PhraseCount> dbpMap = new HashMap<String, PhraseCount>();
     static HashMap<String, PhraseCount> evMap = new HashMap<String, PhraseCount>();
@@ -260,8 +261,10 @@ public class TrigStats {
                 String instanceId = pcount.getPhrase();
                 String docId = pcount.getPhrase();
                 int idx = instanceId.indexOf("---");
+                if (pcount.getPhrase().isEmpty()) {
+                    continue;
+                }
                 if (idx>-1) {
-
                     instanceId = instanceId.substring(0, idx);
                     int idx_s = instanceId.lastIndexOf("/");
                     if (idx_s>-1) instanceId = instanceId.substring(idx_s);
@@ -276,9 +279,15 @@ public class TrigStats {
                 if (instancePhraseMap.containsKey(pcount.getPhrase())) {
                     ArrayList<PhraseCount> mentions = instancePhraseMap.get(pcount.getPhrase());
                     SortedSet<PhraseCount> mentionSet =  freqSortPhraseCountArrayList(mentions);
+                    if (mentionSet.size()==0) {
+                        continue;
+                    }
                     for (PhraseCount mcount : mentionSet) {
                         str += mcount.getPhraseCount()+";";
                     }
+                }
+                else {
+                    continue;
                 }
                 str += "\t";
                 if (typemap.containsKey(pcount.getPhrase())) {
@@ -669,8 +678,9 @@ public class TrigStats {
     static public void main (String[] args) {
         String folderpath = "";
         String type = "instance";
-        STAT= "dbp";
-        folderpath = "/Users/piek/Desktop/CLTL-onderwijs/EnvironmentalAndDigitalHumanities/london/example/trig";
+        STAT= "event";
+        int n = 0;
+        folderpath = "/Users/piek/Desktop/CLTL-onderwijs/EnvironmentalAndDigitalHumanities/london/ob.trig";
         for (int i = 0; i < args.length; i++) {
             String arg = args[i];
             if (arg.equals("--trig-folder") && args.length>(i+1)) {
@@ -678,6 +688,9 @@ public class TrigStats {
             }
             else if (arg.equals("--type") && args.length>(i+1)) {
                 type = args[i+1];
+            }
+            else if (arg.equals("--n") && args.length>(i+1)) {
+                n = Integer.parseInt(args[i+1]);
             }
             else if (arg.equals("--stat") && args.length>(i+1)) {
                 STAT = args[i+1];
@@ -694,7 +707,7 @@ public class TrigStats {
         ArrayList<File> files = Util.makeRecursiveFileList(inputFolder, ".trig");
         System.out.println(".trig files size() = " + files.size());
         if (type.equals("instance")) {
-            processInstances(inputFolder, files);
+            processInstances(inputFolder, files, n);
             outputInstances(inputFolder);
         }
         if (type.equals("grasp")) processGrasp(inputFolder, files);
@@ -754,8 +767,9 @@ public class TrigStats {
         }
     }
 
-    static void processInstances (File inputFolder, ArrayList<File> files) {
-        TrigTripleData trigTripleData = TrigTripleReader.readInstanceTripleFromTrigFiles(STAT, files);
+    static void processInstances (File inputFolder, ArrayList<File> files, int n) {
+
+        TrigTripleData trigTripleData = TrigTripleReader.readInstanceTripleFromTrigFiles(STAT, files, n);
         Set keySet = trigTripleData.tripleMapInstances.keySet();
         Iterator<String> keys = keySet.iterator();
         while (keys.hasNext()) {
@@ -767,7 +781,8 @@ public class TrigStats {
             if (STAT.isEmpty() || STAT.equals("dbp")) {
                 if (type.equalsIgnoreCase("dbp") || type.toLowerCase().endsWith(".dbp")) {
                     updateMap(key, m, dbpMap);
-                    ArrayList<String> mentionLabels = getLabelsFromInstanceStatement(instanceTriples);
+                    //ArrayList<String> mentionLabels = getLabelsFromInstanceStatement(instanceTriples);
+                    ArrayList<String> mentionLabels = getPhraseCountFromInstanceStatement(instanceTriples, trigTripleData);
                     //updateMentionMap(key, lightEntityMap, mentionLabels);
                     updateCountMap(key, lightEntityPhraseCountMap, mentionLabels);
 
@@ -776,7 +791,8 @@ public class TrigStats {
             if (STAT.isEmpty() || STAT.equals("en")) {
                 if (type.equalsIgnoreCase("en")) {
                     updateMap(key, m, enMap);
-                    ArrayList<String> mentionLabels = getLabelsFromInstanceStatement(instanceTriples);
+                    //ArrayList<String> mentionLabels = getLabelsFromInstanceStatement(instanceTriples);
+                    ArrayList<String> mentionLabels = getPhraseCountFromInstanceStatement(instanceTriples, trigTripleData);
                     //updateMentionMap(key, darkEntityMap, mentionLabels);
                     updateCountMap(key, darkEntityPhraseCountMap, mentionLabels);
 
@@ -788,7 +804,8 @@ public class TrigStats {
                     updateMap(key, m, neMap);
                    // ArrayList<String> types = getSkosRelatedValuesFromInstanceStatement(instanceTriples);
                    // updateCountMap(key, nonEntityPhraseCountMap, types);
-                    ArrayList<String> mentionLabels = getLabelsFromInstanceStatement(instanceTriples);
+                    //ArrayList<String> mentionLabels = getLabelsFromInstanceStatement(instanceTriples);
+                    ArrayList<String> mentionLabels = getPhraseCountFromInstanceStatement(instanceTriples, trigTripleData);
                     updateCountMap(key, nonEntityPhraseCountMap, mentionLabels);
                 }
             }
@@ -796,65 +813,68 @@ public class TrigStats {
                 if (key.indexOf("#ev") > -1) {
                     // counting types
                     ArrayList<String> eso = getTypeValuesFromInstanceStatement(instanceTriples, "eso");
+                    ArrayList<String> fn = getTypeValuesFromInstanceStatement(instanceTriples, "fn");
+                    ArrayList<String> ili = getTypeValuesFromInstanceStatement(instanceTriples, "ili");
                     for (int i = 0; i < eso.size(); i++) {
                         String s = eso.get(i);
                         updateMap(s, m, esoMap);
                     }
-                    ArrayList<String> fn = getTypeValuesFromInstanceStatement(instanceTriples, "fn");
                     for (int i = 0; i < fn.size(); i++) {
                         String s = fn.get(i);
                         updateMap(s, m, fnMap);
                     }
-                    ArrayList<String> ili = getTypeValuesFromInstanceStatement(instanceTriples, "ili");
                     for (int i = 0; i < ili.size(); i++) {
                         String s = ili.get(i);
                         updateMap(s, m, iliMap);
                     }
-                    ArrayList<String> labels = getLabelsFromInstanceStatement(instanceTriples);
+                    ArrayList<String> labels = getLabelsFromInstanceStatement(instanceTriples,trigTripleData);
                     /// we first build the data for each event instance
-                    ArrayList<String> mentionLabels = getLabelsFromInstanceStatement(instanceTriples);
+                   // ArrayList<String> mentionLabels = getLabelsFromInstanceStatement(instanceTriples);
+                    ArrayList<String> mentionLabels = getPhraseCountFromInstanceStatement(instanceTriples, trigTripleData);
                     updateCountMap(key, eventPhraseCountMap, mentionLabels);
                     updateMap(key, m, evMap);
 
 
                     /// now we get the data for labels and types
                     for (int i = 0; i < labels.size(); i++) {
-                        String s = labels.get(i);
-                        updateMap(s, m, eventLabelMap);
-                        if (ili.size() == 0) {
-                            updateMap(s, m, eventLabelWithoutILIMap);
-                        }
-                        if (eso.size() == 0) {
-                            updateMap(s, m, eventLabelWithoutESOMap);
-                        }
-                        if (fn.size() == 0) {
-                            updateMap(s, m, eventLabelWithoutFNMap);
-                        }
-                        ArrayList<String> types = new ArrayList<String>();
-                        if (eventTypeMap.containsKey(s)) {
-                            types = eventTypeMap.get(s);
-                        }
-                        //// add the types in order
-                        for (int j = 0; j < ili.size(); j++) {
-                            String s1 = ili.get(j);
-                            if (!types.contains(s1)) {
-                                types.add(s1);
+                        String s = labels.get(i).trim();
+                        if (!s.isEmpty()) {
+                            updateMap(s, m, eventLabelMap);
+                            if (ili.size() == 0) {
+                                updateMap(s, m, eventLabelWithoutILIMap);
                             }
-                        }
-                        for (int j = 0; j < eso.size(); j++) {
-                            String s1 = eso.get(j);
-                            if (!types.contains(s1)) {
-                                types.add(s1);
+                            if (eso.size() == 0) {
+                                updateMap(s, m, eventLabelWithoutESOMap);
                             }
-                        }
-                        for (int j = 0; j < fn.size(); j++) {
-                            String s1 = fn.get(j);
-                            if (!types.contains(s1)) {
-                                types.add(s1);
+                            if (fn.size() == 0) {
+                                updateMap(s, m, eventLabelWithoutFNMap);
                             }
+                            ArrayList<String> types = new ArrayList<String>();
+                            if (eventTypeMap.containsKey(s)) {
+                                types = eventTypeMap.get(s);
+                            }
+                            //// add the types in order
+                            for (int j = 0; j < ili.size(); j++) {
+                                String s1 = ili.get(j);
+                                if (!types.contains(s1)) {
+                                    types.add(s1);
+                                }
+                            }
+                            for (int j = 0; j < eso.size(); j++) {
+                                String s1 = eso.get(j);
+                                if (!types.contains(s1)) {
+                                    types.add(s1);
+                                }
+                            }
+                            for (int j = 0; j < fn.size(); j++) {
+                                String s1 = fn.get(j);
+                                if (!types.contains(s1)) {
+                                    types.add(s1);
+                                }
+                            }
+                            Collections.sort(types);
+                            eventTypeMap.put(key, types);
                         }
-                        Collections.sort(types);
-                        eventTypeMap.put(key, types);
                     }
                 }
             }
@@ -1042,31 +1062,171 @@ public class TrigStats {
             return result;
     }
 
-    static ArrayList<String>  getLabelsFromInstanceStatement (ArrayList<Statement> statements) {
+
+    /**
+     *     <http://cltl.nl/old_bailey/sessionpaper/t19130304-29#ev1>
+     a                  sem:Event , nwrontology:sourceEvent , ili:i25498 , ili:i26089 , ili:i26660 , ili:i25493 , fn:Request ;
+     gaf:denotedBy      <http://cltl.nl/old_bailey/sessionpaper/t19130304-29#char=32,39> ;
+     nwr:phrasecount    <http://cltl.nl/old_bailey/sessionpaper/t19130304-29#ev1#0> ;
+     skos:prefLabel     "plead" ;
+     skos:relatedMatch  <http://eurovoc.europa.eu/1474> , <http://eurovoc.europa.eu/1810> , <http://eurovoc.europa.eu/1460> , <http://eurovoc.europa.eu/5138> , <http://eurovoc.europa.eu/3821> , <http://eurovoc.europa.eu/2734> .
+
+     <http://cltl.nl/old_bailey/sessionpaper/t19130304-29#ev1#0>
+     rdfs:label  "plead" ;
+     nwr:count   1 .
+     *
+     *
+     * @param statements
+     * @return
+     */
+    static ArrayList<String>  getLabelsFromInstanceStatement (ArrayList<Statement> statements, TrigTripleData trigTripleData) {
             ArrayList<String> result = new ArrayList<String>();
-            int countMentions = 0;
+            ArrayList<String> phraseCountObjects = new ArrayList<String>();
             for (int i = 0; i < statements.size(); i++) {
                 Statement statement = statements.get(i);
-
                 String predicate = statement.getPredicate().getLocalName();
-                if (predicate.equals("denotedBy")) {
-                    countMentions ++;
-/*
+                if (predicate.equals("phrasecount")) {
                     String object = "";
+                    //System.out.println("statement = " + statement.toString());
                     if (statement.getObject().isLiteral()) {
                         object = statement.getObject().asLiteral().toString();
                     } else if (statement.getObject().isURIResource()) {
                         object = statement.getObject().asResource().getURI();
                     }
-                    System.out.println("object = " + object);
                     String [] values = object.split(",");
                     for (int j = 0; j < values.length; j++) {
-                        String value = values[j];
-                        System.out.println("value = " + value);
-
-                    }*/
+                        String value = values[j].trim();
+                        if (!value.isEmpty()) {
+                            if (!phraseCountObjects.contains(value)) {
+                                phraseCountObjects.add(value);
+                            }
+                        }
+                    }
                 }
             }
+      //  System.out.println("phraseCountObjects.toString() = " + phraseCountObjects.toString());
+        for (int p = 0; p < phraseCountObjects.size(); p++) {
+            String s = phraseCountObjects.get(p);
+            String label = "";
+            if (trigTripleData.tripleMapLabels.containsKey(s)) {
+                ArrayList<Statement> phraseCountTriples = trigTripleData.tripleMapLabels.get(s);
+                for (int i = 0; i < phraseCountTriples.size(); i++) {
+                    Statement statement = phraseCountTriples.get(i);
+                    String predicate = statement.getPredicate().getLocalName();
+                    if (predicate.equals("label")) {
+                        String object = "";
+                        if (statement.getObject().isLiteral()) {
+                            object = statement.getObject().asLiteral().toString();
+                        } else if (statement.getObject().isURIResource()) {
+                            object = statement.getObject().asResource().getURI();
+                        }
+                        String[] values = object.split(",");
+                        for (int j = 0; j < values.length; j++) {
+                            String value = values[j].trim();
+                            if (!value.isEmpty()) {
+                                label = value;
+                            }
+                        }
+                    }
+                }
+                if (!label.isEmpty()) {
+                        result.add(label);
+                }
+            }
+            else {
+               // System.out.println("cannot find s = " + s);
+            }
+        }
+        return result;
+    }
+
+    static ArrayList<String>  getPhraseCountFromInstanceStatement (ArrayList<Statement> statements, TrigTripleData trigTripleData) {
+            ArrayList<String> result = new ArrayList<String>();
+            ArrayList<String> phraseCountObjects = new ArrayList<String>();
+            for (int i = 0; i < statements.size(); i++) {
+                Statement statement = statements.get(i);
+                String predicate = statement.getPredicate().getLocalName();
+                if (predicate.equals("phrasecount")) {
+                    String object = "";
+                    //System.out.println("statement = " + statement.toString());
+                    if (statement.getObject().isLiteral()) {
+                        object = statement.getObject().asLiteral().toString();
+                    } else if (statement.getObject().isURIResource()) {
+                        object = statement.getObject().asResource().getURI();
+                    }
+                    String [] values = object.split(",");
+                    for (int j = 0; j < values.length; j++) {
+                        String value = values[j].trim();
+                        if (!value.isEmpty()) {
+                            if (!phraseCountObjects.contains(value)) {
+                                phraseCountObjects.add(value);
+                            }
+                        }
+                    }
+                }
+            }
+      //  System.out.println("phraseCountObjects.toString() = " + phraseCountObjects.toString());
+        for (int p = 0; p < phraseCountObjects.size(); p++) {
+            String s = phraseCountObjects.get(p);
+            String label = "";
+            String count = "";
+            if (trigTripleData.tripleMapLabels.containsKey(s)) {
+                ArrayList<Statement> phraseCountTriples = trigTripleData.tripleMapLabels.get(s);
+                for (int i = 0; i < phraseCountTriples.size(); i++) {
+                    Statement statement = phraseCountTriples.get(i);
+                    String predicate = statement.getPredicate().getLocalName();
+                    if (predicate.equals("label")) {
+                        String object = "";
+                        if (statement.getObject().isLiteral()) {
+                            object = statement.getObject().asLiteral().toString();
+                        } else if (statement.getObject().isURIResource()) {
+                            object = statement.getObject().asResource().getURI();
+                        }
+                        String[] values = object.split(",");
+                        for (int j = 0; j < values.length; j++) {
+                            String value = values[j].trim();
+                            if (!value.isEmpty()) {
+                                label = value;
+                            }
+                        }
+                    }
+                    else if (predicate.equals("count")) {
+                        String object = "";
+                        if (statement.getObject().isLiteral()) {
+                            object = statement.getObject().asLiteral().toString();
+                        } else if (statement.getObject().isURIResource()) {
+                            object = statement.getObject().asResource().getURI();
+                        }
+                        String[] values = object.split(",");
+                        for (int j = 0; j < values.length; j++) {
+                            String value = values[j].trim();
+                            if (!value.isEmpty()) {
+                                int idx = value.indexOf("^^");
+                                count = value.substring(0, idx);
+                            }
+                        }
+                    }
+                }
+                if (!label.isEmpty()) {
+                    if (!count.isEmpty()) {
+                        label += ":"+count;
+                        result.add(label);
+                    }
+                    else {
+                        label += ":"+"0";
+                        result.add(label);
+                    }
+                }
+            }
+            else {
+               // System.out.println("cannot find s = " + s);
+            }
+        }
+        return result;
+    }
+
+    static ArrayList<String>  getLabelsFromInstanceStatement (ArrayList<Statement> statements) {
+            ArrayList<String> result = new ArrayList<String>();
             for (int i = 0; i < statements.size(); i++) {
                 Statement statement = statements.get(i);
 
@@ -1080,10 +1240,12 @@ public class TrigStats {
                     }
                     String [] values = object.split(",");
                     for (int j = 0; j < values.length; j++) {
-                        String value = values[j];
-                        if (value.indexOf(":")==-1) value +=":"+countMentions; /// make it backward compatible
-                        if (!result.contains(value)) {
-                            result.add(value);
+                        String value = values[j].trim();
+                        if (!value.isEmpty()) {
+                            //if (value.indexOf(":")==-1) value +=":"+countMentions; /// make it backward compatible
+                            if (!result.contains(value)) {
+                                result.add(value);
+                            }
                         }
                     }
                 }

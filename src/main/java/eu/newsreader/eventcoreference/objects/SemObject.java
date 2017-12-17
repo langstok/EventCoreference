@@ -634,7 +634,13 @@ public class SemObject implements Serializable {
                 }*/
                 if (goodPhrase(phraseCount)) {
                   //  resource.addProperty(RDFS.label, model.createLiteral(phraseCount.getPhrase()));
-                    resource.addProperty(RDFS.label, model.createLiteral(phraseCount.getPhraseCount()));
+                   //resource.addProperty(RDFS.label, model.createLiteral(phraseCount.getPhraseCount()));
+                    Resource countResource = model.createResource(this.getURI()+"#"+i);
+                    countResource.addProperty(RDFS.label, phraseCount.getPhrase());
+                    Property count = model.createProperty(ResourcesUri.nwr+"count");
+                    countResource.addLiteral(count, phraseCount.getCount());
+                    Property countProperty = model.createProperty(ResourcesUri.nwr+"phrasecount");
+                    resource.addProperty(countProperty, countResource);
                 }
             }
         }
@@ -643,7 +649,7 @@ public class SemObject implements Serializable {
             resource.addProperty(RDF.type, type);
         }
 
-        addConceptsToResource(resource, model);
+        addConceptsToResource(resource, model, VERBOSE_MENTION);
 
         for (int i = 0; i < this.getTopics().size(); i++) {
             KafTopic kafTopic = this.getTopics().get(i);
@@ -702,49 +708,56 @@ public class SemObject implements Serializable {
 
     }
 
-    void addConceptsToResource (Resource resource, Model model) {
+    boolean reasonsToSkip (KafSense kafSense) {
+        boolean SKIP = false;
+        /// skipping conditions
+         if (kafSense.getResource().equalsIgnoreCase("verbnet")) {
+             SKIP=true;
+         }
+         if (kafSense.getResource().equalsIgnoreCase("wordnet")) {
+             //SKIP=true;
+         }
+         if (kafSense.getResource().equalsIgnoreCase("propbank")) {
+             SKIP=true;
+         }
+         if (kafSense.getResource().equalsIgnoreCase("nombank")) {
+             SKIP=true;
+         }
+         if (this.getURI().indexOf("entities/")==-1) {
+             if (kafSense.getResource().toLowerCase().startsWith("vua-type-reranker")) {
+                 SKIP=true;
+             }
+             if (kafSense.getResource().toLowerCase().startsWith("doublelinkentities")) {
+                 SKIP=true;
+             }
+             if (kafSense.getResource().toLowerCase().startsWith("dominantentities")) {
+                 SKIP=true;
+             }
+             if (kafSense.getResource().isEmpty() && this.getURI().startsWith("http://dbpedia.org")) {
+                 SKIP=true;
+             }
+             if (kafSense.getResource().toLowerCase().startsWith("spotlight")) {
+             /*
+             (5) DBpedia resources are used as classes via rdf:type triples, while
+                 they should be treated as instances, by either:
+                 - using them as the subject of extracted triples (suggested), or
+                 - linking them to entity/event URIs using owl:sameAs triples
+              */
+/*                String nameSpaceType = getNameSpaceTypeReference(kafSense);
+             Resource conceptResource = model.createResource(nameSpaceType);
+             resource.addProperty(OWL.sameAs, conceptResource);*/
+                 /// we now use dbpedia to create the URI of the instance so we do not need to the sameAs mapping anymore
+                 SKIP=true;
+             }
+         }
+         return true;
+    }
+    void addConceptsToResource (Resource resource, Model model, boolean VERBOSE) {
         for (int i = 0; i < concepts.size(); i++) {
             KafSense kafSense = concepts.get(i);
 
-            /// skipping conditions
-            if (kafSense.getResource().equalsIgnoreCase("verbnet")) {
+            if (!VERBOSE && reasonsToSkip(kafSense)) {
                 continue;
-            }
-            if (kafSense.getResource().equalsIgnoreCase("wordnet")) {
-              //  continue;
-            }
-            if (kafSense.getResource().equalsIgnoreCase("propbank")) {
-                continue;
-            }
-            if (kafSense.getResource().equalsIgnoreCase("nombank")) {
-                continue;
-            }
-            if (this.getURI().indexOf("entities/")==-1) {
-                if (kafSense.getResource().toLowerCase().startsWith("vua-type-reranker")) {
-                    continue;
-                }
-                if (kafSense.getResource().toLowerCase().startsWith("doublelinkentities")) {
-                    continue;
-                }
-                if (kafSense.getResource().toLowerCase().startsWith("dominantentities")) {
-                    continue;
-                }
-                if (kafSense.getResource().isEmpty() && this.getURI().startsWith("http://dbpedia.org")) {
-                    continue;
-                }
-                if (kafSense.getResource().toLowerCase().startsWith("spotlight")) {
-                /*
-                (5) DBpedia resources are used as classes via rdf:type triples, while
-                    they should be treated as instances, by either:
-                    - using them as the subject of extracted triples (suggested), or
-                    - linking them to entity/event URIs using owl:sameAs triples
-                 */
-/*                String nameSpaceType = getNameSpaceTypeReference(kafSense);
-                Resource conceptResource = model.createResource(nameSpaceType);
-                resource.addProperty(OWL.sameAs, conceptResource);*/
-                    /// we now use dbpedia to create the URI of the instance so we do not need to the sameAs mapping anymore
-                    continue;
-                }
             }
             String nameSpaceType = getNameSpaceTypeReference(kafSense);
             if (!nameSpaceType.isEmpty()) {
@@ -835,10 +848,7 @@ public class SemObject implements Serializable {
 
     static public String getNameSpaceTypeReference(KafSense kafSense) {
         String ref = "";
-        if (kafSense.getResource().equalsIgnoreCase("verbnet")) {
-            ref = ResourcesUri.vn + kafSense.getSensecode();
-        }
-        else if (kafSense.getResource().equalsIgnoreCase("wordnet")) {
+        if (kafSense.getResource().equalsIgnoreCase("wordnet")) {
             String senseCode = kafSense.getSensecode();
             if (senseCode.toLowerCase().startsWith("ili-30-")) {
                 senseCode = "eng"+senseCode.substring(6);
@@ -901,11 +911,27 @@ public class SemObject implements Serializable {
             ref = ResourcesUri.eso + kafSense.getSensecode();
         } else if (kafSense.getResource().equalsIgnoreCase("eso-")) {
             ref = ResourcesUri.eso + kafSense.getSensecode();
-        } else if (kafSense.getResource().equalsIgnoreCase("propbank")) {
-            ref = ResourcesUri.pb + kafSense.getSensecode();
+        }
+        else if (kafSense.getResource().equalsIgnoreCase("verbnet")) {
+            //// removed because the senseCode results in illegal URI.
+           // ref = ResourcesUri.vn + kafSense.getSensecode();
+        }else if (kafSense.getResource().equalsIgnoreCase("propbank")) {
+            //// removed because the senseCode results in illegal URI.
+           // ref = ResourcesUri.pb + kafSense.getSensecode();
         } else if (kafSense.getResource().equalsIgnoreCase("nombank")) {
-            ref = ResourcesUri.nb + kafSense.getSensecode();
-        } else if (kafSense.getResource().toLowerCase().startsWith("spotlight") ||
+            //// removed because the senseCode results in illegal URI.
+            // We get errors here: <http://www.newsreader-project.eu/ontologies/nombank/>.01>
+            if (kafSense.getSensecode().indexOf(">")>-1 ||
+                kafSense.getSensecode().indexOf("<")>-1
+                    )
+            {
+
+            }
+            else {
+             //   ref = ResourcesUri.nb + kafSense.getSensecode();
+            }
+        }
+        else if (kafSense.getResource().toLowerCase().startsWith("spotlight") ||
                    kafSense.getSource().toLowerCase().startsWith("spotlight")
                    ||
                    kafSense.getResource().toLowerCase().startsWith("vua-type-reranker") ||
@@ -945,25 +971,27 @@ public class SemObject implements Serializable {
             ref = ResourcesUri.nwrontology + "MISC";
 
         }
+        else //// PATCH TO FIX WRONG URIs GENERATED BY DUTCH PIPELINE
+                //// 16 June 2015
+        if (ref.contains("DBpedia:Organisation")) {
+            ref = ResourcesUri.nwrontology + "ORG";
+        }
+        else if (ref.contains("DBpedia:Person")) {
+            ref = ResourcesUri.nwrontology + "PER";
+        }
+        else if (ref.contains("DBpedia:Place")) {
+            ref = ResourcesUri.nwrontology + "LOC";
+        }
+        else if (ref.contains("DBpedia:")) {
+            ref = ResourcesUri.nwrontology + "MISC";
+        }
         else {
-            ref = ResourcesUri.nwrontology + kafSense.getSensecode();
+            ///// WE DO NOT OUTPUT BECAUSE WE CANNOT TRUST THAT THE SENSECODE IS VALID AS A URI
+            //ref = ResourcesUri.nwrontology + kafSense.getSensecode();
         }
        // System.out.println("ref = " + ref);
 
-        //// PATCH TO FIX WRONG URIs GENERATED BY DUTCH PIPELINE
-        //// 16 June 2015
-            if (ref.contains("DBpedia:Organisation")) {
-                ref = ResourcesUri.nwrontology + "ORG";
-            }
-            else if (ref.contains("DBpedia:Person")) {
-                ref = ResourcesUri.nwrontology + "PER";
-            }
-            else if (ref.contains("DBpedia:Place")) {
-                ref = ResourcesUri.nwrontology + "LOC";
-            }
-            else if (ref.contains("DBpedia:")) {
-                ref = ResourcesUri.nwrontology + "MISC";
-            }
+
         //System.out.println("ref = " + ref);
         return ref;
     }

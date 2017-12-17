@@ -218,13 +218,13 @@ public class ComponentMatch {
 
         ArrayList<String> neededRoles = new ArrayList<String>();
         if (EventTypes.isCONTEXTUAL(eventType)) {
-            return compareCompositeEvent(compositeEvent1, compositeEvent2, neededRoles);
+            return compareCompositeEvent(compositeEvent1, compositeEvent2, neededRoles, false);
         } else if (EventTypes.isCOMMUNICATION(eventType)) {
             neededRoles.add("a0");
-            return compareCompositeEvent(compositeEvent1, compositeEvent2, neededRoles);
+            return compareCompositeEvent(compositeEvent1, compositeEvent2, neededRoles, false);
         } else if (EventTypes.isGRAMMATICAL(eventType)) {
             neededRoles.add("a1");
-            return compareCompositeEvent(compositeEvent1, compositeEvent2, neededRoles);
+            return compareCompositeEvent(compositeEvent1, compositeEvent2, neededRoles, false);
         } else if (EventTypes.isFUTURE(eventType)) {
             ///// For FUTURE events we demand that all participants match except the temporal relations
             return compareCompositeEventToMatchAllProbBankRoles(compositeEvent1, compositeEvent2);
@@ -276,13 +276,18 @@ public class ComponentMatch {
      */
     public static boolean compareCompositeEvent(CompositeEvent compositeEvent1,
                                                 CompositeEvent compositeEvent2,
-                                                ArrayList<String> minimallyRequiredRoles) {
+                                                ArrayList<String> minimallyRequiredRoles, boolean DEBUG) {
 
-        if (minimallyRequiredRoles.contains("none") || minimallyRequiredRoles.size()==0) {
+        if (DEBUG) System.out.println("minimallyRequiredRoles = " + minimallyRequiredRoles.toString());
+        if (DEBUG) System.out.println("compositeEvent1.getMySemActors().size() = " + compositeEvent1.getMySemActors().size());
+        if (DEBUG) System.out.println("compositeEvent2.getMySemActors().size() = " + compositeEvent2.getMySemActors().size());
+            if (minimallyRequiredRoles.contains("none") || minimallyRequiredRoles.size()==0) {
+                if (DEBUG) System.out.println("NOTHING TO MATCH NOTHING TO MATCH");
             return true;
         }
         if (compositeEvent1.getMySemActors().size() == 0 || compositeEvent2.getMySemActors().size() == 0) {
-            return true;
+            if (DEBUG) System.out.println("ONE IS EMPTY NO MATCH");
+                return false;
         }
        // System.out.println("minimallyRequiredRoles = " + minimallyRequiredRoles.toString());
         if (minimallyRequiredRoles.contains("all")) {
@@ -292,6 +297,7 @@ public class ComponentMatch {
         if (minimallyRequiredRoles.size()>0
                 && !minimallyRequiredRoles.contains("none")
                 && !minimallyRequiredRoles.contains("anyrole")
+                && !minimallyRequiredRoles.contains("any")
                 ) {
             for (int i = 0; i < minimallyRequiredRoles.size(); i++) {
                 String requiredRole = minimallyRequiredRoles.get(i);
@@ -301,19 +307,25 @@ public class ComponentMatch {
               //  System.out.println("roleObjects2 = " + roleObjects2.size());
                 if (!Collections.disjoint(roleObjects1, roleObjects2)) {
                     //// URI MATCH
+                    if (DEBUG) System.out.println("URI MATCH");
                     nMatches++;
                 } else if (compareActorPrefLabelReference(compositeEvent1, compositeEvent2, roleObjects1, roleObjects2)) {
+                    if (DEBUG) System.out.println("LABEL MATCH");
+
                     nMatches++;
                 }
             }
             if (nMatches == minimallyRequiredRoles.size()) {
                 /////  FOR ALL REQUIRED ROLES WE FOUND A MATCH
+                if (DEBUG) System.out.println("EACH TYPE OF ROLE HAS A MATCH");
+
                 return true;
             } else {
                 return false;
             }
         }
-        else if (minimallyRequiredRoles.contains("anyrole")) {
+        else if (minimallyRequiredRoles.contains("anyrole") ||
+                 minimallyRequiredRoles.contains("any")) {
             /// IF NO SPECIFIC ROLES NEED TO BE PRESENT, WE GET ALL ROLES EXCEPT TIME AND CHECK IF THERE IS ANY MATCH
             ArrayList<String> roleObjects1 = Util.getObjectsForPredicate(compositeEvent1.getMySemRelations());
             ArrayList<String> roleObjects2 = Util.getObjectsForPredicate(compositeEvent2.getMySemRelations());
@@ -329,9 +341,11 @@ public class ComponentMatch {
                         System.out.println("s = " + s);
                     }
                 }*/
+                if (DEBUG) System.out.println("URI MATCH");
                 return true;
             }
             else if (compareActorPrefLabelReference(compositeEvent1, compositeEvent2, roleObjects1, roleObjects2)) {
+                if (DEBUG) System.out.println("LABEL MATCH");
                 /// PREF LABEL MATCH
                 return true;
             }
@@ -340,7 +354,9 @@ public class ComponentMatch {
             }
         }
         else {
-            return true;
+            /// should never occur
+            if (DEBUG) System.out.println("This should never happen minimallyRequiredRoles = " + minimallyRequiredRoles.toString());
+            return false;
         }
     }
 
@@ -357,8 +373,13 @@ public class ComponentMatch {
                                                     String TIME
                                                     ) {
 
+           // System.out.println("compositeEvent1 = " + compositeEvent1.getEvent().getId());
+           // System.out.println("compositeEvent1.getMySemTimes().size() = " + compositeEvent1.getMySemTimes().size());
+           // System.out.println("compositeEvent2 = " + compositeEvent2.getEvent().getId());
+           // System.out.println("compositeEvent2.getMySemTimes().size() = " + compositeEvent2.getMySemTimes().size());
             //// if no time we do not know
             if (compositeEvent1.getMySemTimes().size() == 0 || compositeEvent2.getMySemTimes().size() == 0) {
+             //   System.out.println("NO TIME ASSOCIATED.");
                 return true;
             }
             if (TIME.equalsIgnoreCase("year")) {
@@ -372,6 +393,7 @@ public class ComponentMatch {
             }
             else {
                 /// no known TIME value
+              //  System.out.println("NO PROPER TIME PARAMATER:"+TIME);
                 return true;
             }
         }
@@ -540,6 +562,43 @@ public class ComponentMatch {
         return false;
     }
 
+    static boolean valueMatch(String value1, String value2) {
+        if (value1.equals(value2) && !value1.isEmpty()) {
+            return true;
+        }
+        return false;
+    }
+    /**
+     * Compares two time objects to determine if they exclude each other or not
+     *
+     * @param mySemTimes
+     * @param semTimes
+     * @return
+     */
+    public static boolean compareTimeYearOld(ArrayList<SemTime> mySemTimes,
+                                      ArrayList<SemTime> semTimes) {
+
+        for (int i = 0; i < mySemTimes.size(); i++) {
+            SemTime mySemTime = mySemTimes.get(i);
+            for (int j = 0; j < semTimes.size(); j++) {
+                SemTime semTime = semTimes.get(j);
+                if (mySemTime.getOwlTime().getYear().equals(semTime.getOwlTime().getYear())) {
+                    System.out.println("mySemTime.getOwlTime().getYear() = " + mySemTime.getOwlTime().getYear());
+                    System.out.println("semTime.getOwlTime().getYear() = " + semTime.getOwlTime().getYear());
+                    return true;
+                }
+                else if (mySemTime.getOwlTimeBegin().getYear().equals(semTime.getOwlTimeBegin().getYear())) {
+                    return true;
+                }
+                else if (mySemTime.getOwlTimeEnd().getYear().equals(semTime.getOwlTimeEnd().getYear())) {
+                    return true;
+                }
+            }
+
+        }
+        return false;
+    }
+
     /**
      * Compares two time objects to determine if they exclude each other or not
      *
@@ -554,15 +613,18 @@ public class ComponentMatch {
             SemTime mySemTime = mySemTimes.get(i);
             for (int j = 0; j < semTimes.size(); j++) {
                 SemTime semTime = semTimes.get(j);
-                if (mySemTime.getOwlTime().getYear().equals(semTime.getOwlTime().getYear())) {
+                if (valueMatch(mySemTime.getOwlTime().getYear(), semTime.getOwlTime().getYear())) {
+                    System.out.println("mySemTime.getOwlTime().getYear() = " + mySemTime.getOwlTime().getYear());
+                    System.out.println("semTime.getOwlTime().getYear() = " + semTime.getOwlTime().getYear());
                     return true;
-                } else if (mySemTime.getOwlTimeBegin().getYear().equals(semTime.getOwlTimeBegin().getYear())) {
+                }
+                else if (valueMatch(mySemTime.getOwlTimeBegin().getYear(),semTime.getOwlTimeBegin().getYear())) {
                     return true;
-                } else if (mySemTime.getOwlTimeEnd().getYear().equals(semTime.getOwlTimeEnd().getYear())) {
+                }
+                else if (valueMatch(mySemTime.getOwlTimeEnd().getYear(), semTime.getOwlTimeEnd().getYear())) {
                     return true;
                 }
             }
-
         }
         return false;
     }
@@ -581,16 +643,16 @@ public class ComponentMatch {
             SemTime mySemTime = mySemTimes.get(i);
             for (int j = 0; j < semTimes.size(); j++) {
                 SemTime semTime = semTimes.get(j);
-                if (mySemTime.getOwlTime().getMonth().equals(semTime.getOwlTime().getMonth()) &&
-                    mySemTime.getOwlTime().getYear().equals(semTime.getOwlTime().getYear()))
+                if (valueMatch(mySemTime.getOwlTime().getMonth(),semTime.getOwlTime().getMonth()) &&
+                        valueMatch(mySemTime.getOwlTime().getYear(), semTime.getOwlTime().getYear()))
                     {
                     return true;
-                } else if (mySemTime.getOwlTimeBegin().getMonth().equals(semTime.getOwlTimeBegin().getMonth()) &&
-                           mySemTime.getOwlTimeBegin().getYear().equals(semTime.getOwlTimeBegin().getYear()))
+                } else if (valueMatch(mySemTime.getOwlTimeBegin().getMonth(), semTime.getOwlTimeBegin().getMonth()) &&
+                        valueMatch(mySemTime.getOwlTimeBegin().getYear(),semTime.getOwlTimeBegin().getYear()))
                     {
                     return true;
-                } else if (mySemTime.getOwlTimeEnd().getMonth().equals(semTime.getOwlTimeEnd().getMonth()) &&
-                           mySemTime.getOwlTimeEnd().getYear().equals(semTime.getOwlTimeEnd().getYear())) {
+                } else if (valueMatch(mySemTime.getOwlTimeEnd().getMonth(), semTime.getOwlTimeEnd().getMonth()) &&
+                        valueMatch(mySemTime.getOwlTimeEnd().getYear(), semTime.getOwlTimeEnd().getYear())) {
 
                     return true;
                 }

@@ -30,6 +30,7 @@ public class NafSemParameters {
             "--no-nomcoref          <(OPTIONAL) nominal coreference layer is ignored\n" +
             "--no-eventcoref        <(OPTIONAL) event coreference layer is ignored\n" +
             "--no-doc-time          <(OPTIONAL) document creation time is not considered\n" +
+            "--local-context        <(OPTIONAL) Default is false. Using this option sets local context to true which means that entities without external reference URI such as DBpedia are made unique per NAF input file\n" +
             "--no-context-time      <(OPTIONAL) time expressions of preceding and following sentences are not associated with events\n"+
             "--all                  <(OPTIONAL) All events are extracted, including events without time and without participants>\n" +
             "--eurovoc-en, --eurovoc-nl, --eurovoc-es, --eurovoc_es" +
@@ -49,6 +50,7 @@ public class NafSemParameters {
     private String PROJECT = "";
     private boolean DOCTIME = true;
     private boolean CONTEXTTIME = true;
+    private boolean PARAGRAPHTIME = true;
     private boolean ADDITIONALROLES = true;
     private boolean LOCALCONTEXT = false;
     private boolean NOMCOREF = true;
@@ -81,6 +83,7 @@ public class NafSemParameters {
         PERSPECTIVE = false;
         DOCTIME = true;
         CONTEXTTIME = true;
+        PARAGRAPHTIME = true;
         NOMCOREF = true;
         EVENTCOREF = true;
         ADDITIONALROLES = true;
@@ -166,6 +169,14 @@ public class NafSemParameters {
 
     public void setDOCTIME(boolean DOCTIME) {
         this.DOCTIME = DOCTIME;
+    }
+
+    public boolean isPARAGRAPHTIME() {
+        return PARAGRAPHTIME;
+    }
+
+    public void setPARAGRAPHTIME(boolean PARAGRAPHTIME) {
+        this.PARAGRAPHTIME = PARAGRAPHTIME;
     }
 
     public boolean isCONTEXTTIME() {
@@ -303,6 +314,9 @@ public class NafSemParameters {
             else if (arg.equals("--no-context-time")) {
                 CONTEXTTIME = false;
             }
+            else if (arg.equals("--no-paragraph-time")) {
+                PARAGRAPHTIME = false;
+            }
             else if (arg.equals("--no-nomcoref")) {
                 NOMCOREF = false;
             }
@@ -389,6 +403,7 @@ public class NafSemParameters {
         System.out.println("PROJECT = " + PROJECT);
         System.out.println("DOCTIME = " + DOCTIME);
         System.out.println("CONTEXTTIME = " + CONTEXTTIME);
+        System.out.println("PARAGRAPHTIME = " + PARAGRAPHTIME);
         System.out.println("ADDITIONALROLES = " + ADDITIONALROLES);
         System.out.println("NOMCOREF = " + NOMCOREF);
         System.out.println("EVENTCOREF = " + EVENTCOREF);
