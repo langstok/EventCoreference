@@ -20,7 +20,7 @@ public class StreamTest {
     private KAFDocument kafDocument;
 
     @Test
-    public void testStream() throws UnsupportedEncodingException {
+    public void testStream() throws Exception {
 
         logger.info("sem transform");
         ByteArrayOutputStream semOutputStream = getSemFromNafStream.getSem(kafDocument);
